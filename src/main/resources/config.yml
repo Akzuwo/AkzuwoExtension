@@ -1,0 +1,10 @@
+# Datenbankkonfiguration für das Plugin
+database:
+  host: ""
+  port: 3306
+  name: ""
+  username: ""
+  password: ""
+discord-bot-token: ""
+discord-channel-id-reports: ""
+discord-channel-id-notifications: ""

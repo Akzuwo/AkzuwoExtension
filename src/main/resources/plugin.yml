@@ -1,0 +1,22 @@
+name: AkzuwoExtension
+version: '${project.version}'
+main: ch.ksrminecraft.akzuwoextension.AkzuwoExtension
+api-version: '1.20'
+commands:
+  report:
+    description: Report a player.
+    usage: /report <player> <reason>
+  viewreports:
+    description: View all reports.
+    usage: /viewreports
+  deletereport:
+    description: Delete a report by ID.
+    usage: /deletereport <id>
+
+tutorialcommand: true
+
+
+softdepend: [PlaceholderAPI]
+
+
+
