@@ -65,6 +65,11 @@ public class DiscordNotifier {
     public void shutdown() {
         if (jda != null) {
             jda.shutdown();
+            try {
+                jda.awaitShutdown();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
         }
     }
 }
