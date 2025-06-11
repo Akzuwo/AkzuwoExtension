@@ -36,6 +36,7 @@ public class DiscordNotifier {
     public void sendServerNotification(String message) {
         sendMessage(channelIdNotification, message);
     }
+    //Git Push Test
 
     private void sendMessage(String channelId, String message) {
         if (jda != null) {
