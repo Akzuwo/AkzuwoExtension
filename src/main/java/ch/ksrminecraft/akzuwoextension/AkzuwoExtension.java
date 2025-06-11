@@ -151,3 +151,6 @@ public class AkzuwoExtension extends JavaPlugin implements PluginMessageListener
         return serverName;
     }
 }
+
+//git fetch origin
+//git reset --hard origin/main
