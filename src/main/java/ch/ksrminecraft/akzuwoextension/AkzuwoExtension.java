@@ -33,7 +33,7 @@ public class AkzuwoExtension extends JavaPlugin implements PluginMessageListener
         }
 
         // Discord Notifier initialisieren
-        discordNotifier = new DiscordNotifier();
+        discordNotifier = new DiscordNotifier(this);
         discordNotifier.initialize();
 
         // Datenbankkonfiguration aus config.yml laden
@@ -98,7 +98,7 @@ public class AkzuwoExtension extends JavaPlugin implements PluginMessageListener
 
         // Discord-Benachrichtigung senden
         if (discordNotifier != null) {
-            discordNotifier.sendReportNotification("Plugin erfolgreich gestartet auf Server: " + serverName);
+            discordNotifier.sendServerNotification("Plugin erfolgreich gestartet auf Server: " + serverName);
         } else {
             getLogger().warning("DiscordNotifier ist nicht initialisiert.");
         }
