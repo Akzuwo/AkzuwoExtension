@@ -89,8 +89,13 @@ public class AkzuwoExtension extends JavaPlugin implements PluginMessageListener
             getLogger().severe("Fehler beim Schließen der Datenbankverbindung: " + e.getMessage());
         }
 
-        // Discord Shutdown
+        // Discord-Benachrichtigung senden und Bot herunterfahren
         if (discordNotifier != null) {
+            String name = serverName != null
+                    ? serverName
+                    : getConfig().getString("default-server-name", "Unbekannt");
+            discordNotifier.sendServerNotification(
+                    "Plugin wurde auf Server " + name + " heruntergefahren");
             discordNotifier.shutdown();
         }
 
