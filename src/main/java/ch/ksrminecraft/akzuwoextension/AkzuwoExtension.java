@@ -34,7 +34,9 @@ public class AkzuwoExtension extends JavaPlugin implements PluginMessageListener
 
         // Discord Notifier initialisieren
         discordNotifier = new DiscordNotifier(this);
-        discordNotifier.initialize();
+        if (!discordNotifier.initialize()) {
+            discordNotifier = null;
+        }
 
         // Datenbankkonfiguration aus config.yml laden
         String host = getConfig().getString("database.host");
@@ -43,6 +45,14 @@ public class AkzuwoExtension extends JavaPlugin implements PluginMessageListener
         String username = getConfig().getString("database.username");
         String password = getConfig().getString("database.password");
 
+        // Prüfen, ob alle Daten vorhanden sind
+        if (host == null || host.isBlank() || database == null || database.isBlank()
+                || username == null || username.isBlank() || password == null || password.isBlank()) {
+            getLogger().severe("Ungültige Datenbankkonfiguration. Plugin wird deaktiviert.");
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
+
         // Datenbankverbindung und Repository initialisieren
         databaseManager = new DatabaseManager(host, port, database, username, password);
         try {
@@ -50,8 +60,9 @@ public class AkzuwoExtension extends JavaPlugin implements PluginMessageListener
             reportRepository = new ReportRepository(databaseManager, getLogger());
             getLogger().info("Datenbank erfolgreich verbunden.");
         } catch (SQLException e) {
-            getLogger().severe("Datenbankverbindung konnte nicht hergestellt werden!");
+            getLogger().severe("Datenbankverbindung konnte nicht hergestellt werden! Plugin wird deaktiviert.");
             e.printStackTrace();
+            getServer().getPluginManager().disablePlugin(this);
             return;
         }
 

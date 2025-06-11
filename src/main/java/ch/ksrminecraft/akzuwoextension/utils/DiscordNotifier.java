@@ -20,12 +20,24 @@ public class DiscordNotifier {
         this.channelIdNotification = plugin.getConfig().getString("discord-channel-id-notifications");
     }
 
-    public void initialize() {
+    /**
+     * Initialisiert den Discord-Bot.
+     *
+     * @return true, wenn der Bot erfolgreich gestartet wurde, sonst false
+     */
+    public boolean initialize() {
+        if (botToken == null || botToken.isBlank()) {
+            plugin.getLogger().warning("Kein Discord-Bot-Token gesetzt. Discord-Funktion deaktiviert.");
+            return false;
+        }
+
         try {
             jda = JDABuilder.createDefault(botToken).build();
             jda.awaitReady(); // Warten, bis der Bot vollständig gestartet ist
+            return true;
         } catch (Exception e) {
-            e.printStackTrace();
+            plugin.getLogger().warning("Discord-Bot konnte nicht gestartet werden: " + e.getMessage());
+            return false;
         }
     }
 
@@ -38,13 +50,15 @@ public class DiscordNotifier {
     }
 
     private void sendMessage(String channelId, String message) {
-        if (jda != null) {
-            TextChannel channel = jda.getTextChannelById(channelId);
-            if (channel != null) {
-                channel.sendMessage(message).queue();
-            } else {
-                System.err.println("Textkanal nicht gefunden.");
-            }
+        if (jda == null || channelId == null || channelId.isBlank()) {
+            return;
+        }
+
+        TextChannel channel = jda.getTextChannelById(channelId);
+        if (channel != null) {
+            channel.sendMessage(message).queue();
+        } else {
+            plugin.getLogger().warning("Textkanal nicht gefunden.");
         }
     }
 
