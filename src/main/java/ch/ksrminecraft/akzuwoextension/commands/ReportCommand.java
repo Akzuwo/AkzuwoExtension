@@ -28,7 +28,8 @@ public class ReportCommand implements CommandExecutor {
 
         @Nullable String serverName = plugin.getConfig().getString("default-server-name");
         if (discordNotifier != null) {
-            discordNotifier.sendServerNotification("Plugin erfolgreich gestartet auf Server: " + serverName);
+            String version = plugin.getDescription().getVersion();
+            discordNotifier.sendServerNotification("Plugin Version " + version + " erfolgreich gestartet auf Server: " + serverName);
         } else {
             plugin.getLogger().warning("DiscordNotifier ist nicht initialisiert.");
         }

@@ -42,9 +42,9 @@ public class DeleteReportCommand implements CommandExecutor {
                 return true;
             }
 
-            // Löschen des Reports aus der Datenbank
-            reportRepository.deleteReportById(reportId);
-            sender.sendMessage(ChatColor.GREEN + "Report mit der ID " + reportId + " wurde erfolgreich gelöscht.");
+            // Löschvorgang vormerken
+            plugin.setPendingDelete(sender.getName(), reportId);
+            sender.sendMessage(ChatColor.YELLOW + "Bestätige das Löschen mit /akzuwoextension confirm.");
         } catch (NumberFormatException e) {
             sender.sendMessage(ChatColor.RED + "Die angegebene Report-ID ist ungültig.");
         }

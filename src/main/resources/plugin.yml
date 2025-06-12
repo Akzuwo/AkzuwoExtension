@@ -15,6 +15,9 @@ commands:
   deletereport:
     description: Delete a report by ID.
     usage: /deletereport <id>
+  akzuwoextension:
+    description: Base command for confirmations.
+    usage: /akzuwoextension confirm
 
 tutorialcommand: true
 
