@@ -31,8 +31,13 @@ public class ViewReportsCommand implements CommandExecutor {
         // Zugriff auf das ReportRepository
         ReportRepository reportRepository = plugin.getReportRepository();
 
-        // Alle offenen Reports abrufen
+        // Alle Reports abrufen und nur offene oder in Bearbeitung befindliche anzeigen
         List<Report> reports = reportRepository.getAllReports();
+        reports.removeIf(r -> {
+            String status = r.getStatus();
+            return status != null && !(status.equalsIgnoreCase("offen") || status.equalsIgnoreCase("in Bearbeitung"));
+        });
+        reports.sort((a, b) -> Integer.compare(getStatusOrder(a.getStatus()), getStatusOrder(b.getStatus())));
         if (reports.isEmpty()) {
             sender.sendMessage(ChatColor.YELLOW + "Keine Reports vorhanden.");
             return true;
@@ -66,5 +71,17 @@ public class ViewReportsCommand implements CommandExecutor {
     private String getPlayerNameFromUUID(String uuid) {
         OfflinePlayer player = Bukkit.getOfflinePlayer(UUID.fromString(uuid));
         return player.getName() != null ? player.getName() : "Unbekannt";
+    }
+
+    private int getStatusOrder(String status) {
+        if (status == null) return 2;
+        switch (status.toLowerCase()) {
+            case "offen":
+                return 0;
+            case "in bearbeitung":
+                return 1;
+            default:
+                return 2;
+        }
     }
 }

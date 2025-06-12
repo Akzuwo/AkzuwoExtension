@@ -159,4 +159,25 @@ public class ReportRepository  {
 
         return 0; // Rückgabe 0 bei Fehler
     }
+
+    /**
+     * Aktualisiert den Status eines Reports.
+     *
+     * @param reportId  Die ID des Reports
+     * @param newStatus Neuer Status
+     */
+    public void updateReportStatus(int reportId, String newStatus) {
+        String sql = "UPDATE reports SET status = ? WHERE id = ?";
+
+        try (Connection connection = databaseManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setString(1, newStatus);
+            statement.setInt(2, reportId);
+            statement.executeUpdate();
+
+        } catch (SQLException e) {
+            logger.severe("Fehler beim Aktualisieren des Report-Status: " + e.getMessage());
+        }
+    }
 }
