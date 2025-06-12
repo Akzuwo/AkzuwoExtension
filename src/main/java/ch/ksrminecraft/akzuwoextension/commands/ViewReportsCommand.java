@@ -31,8 +31,12 @@ public class ViewReportsCommand implements CommandExecutor {
         // Zugriff auf das ReportRepository
         ReportRepository reportRepository = plugin.getReportRepository();
 
-        // Alle offenen Reports abrufen
+        // Alle Reports abrufen
         List<Report> reports = reportRepository.getAllReports();
+        // Nur offene oder in Bearbeitung befindliche Reports anzeigen
+        reports.removeIf(r ->
+                !("offen".equalsIgnoreCase(r.getStatus()) ||
+                  "in Bearbeitung".equalsIgnoreCase(r.getStatus())));
         if (reports.isEmpty()) {
             sender.sendMessage(ChatColor.YELLOW + "Keine Reports vorhanden.");
             return true;

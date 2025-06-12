@@ -9,6 +9,9 @@ commands:
   viewreports:
     description: View all reports.
     usage: /viewreports
+  viewreportsgui:
+    description: View all reports in a GUI.
+    usage: /viewreportsgui
   deletereport:
     description: Delete a report by ID.
     usage: /deletereport <id>
