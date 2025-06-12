@@ -75,6 +75,9 @@ public class AkzuwoExtension extends JavaPlugin implements PluginMessageListener
 
         // Commands und TabCompleter registrieren
         registerCommands();
+
+        // Listener registrieren
+        getServer().getPluginManager().registerEvents(new ViewReportsGuiListener(this), this);
     }
 
     @Override
@@ -139,6 +142,7 @@ public class AkzuwoExtension extends JavaPlugin implements PluginMessageListener
         getCommand("report").setExecutor(new ReportCommand(this, discordNotifier));
         getCommand("report").setTabCompleter(new ReportTabCompleter());
         getCommand("viewreports").setExecutor(new ViewReportsCommand(this));
+        getCommand("viewreportsgui").setExecutor(new ViewReportsGuiCommand(this));
         getCommand("deletereport").setExecutor(new DeleteReportCommand(this, reportRepository));
         getCommand("deletereport").setTabCompleter(new DeleteReportTabCompleter(reportRepository));
     }
