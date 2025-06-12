@@ -17,6 +17,7 @@ public class AkzuwoExtension extends JavaPlugin implements PluginMessageListener
     private ReportRepository reportRepository;
     private DiscordNotifier discordNotifier;
     private String serverName;
+    private final java.util.Map<String, Integer> pendingDeleteReports = new java.util.HashMap<>();
 
     @Override
     public void onEnable() {
@@ -117,7 +118,8 @@ public class AkzuwoExtension extends JavaPlugin implements PluginMessageListener
 
         // Discord-Benachrichtigung senden
         if (discordNotifier != null) {
-            discordNotifier.sendServerNotification("Plugin erfolgreich gestartet auf Server: " + serverName);
+            String version = getDescription().getVersion();
+            discordNotifier.sendServerNotification("Plugin Version " + version + " erfolgreich gestartet auf Server: " + serverName);
         } else {
             getLogger().warning("DiscordNotifier ist nicht initialisiert.");
         }
@@ -145,6 +147,7 @@ public class AkzuwoExtension extends JavaPlugin implements PluginMessageListener
         getCommand("viewreportsgui").setExecutor(new ViewReportsGuiCommand(this));
         getCommand("deletereport").setExecutor(new DeleteReportCommand(this, reportRepository));
         getCommand("deletereport").setTabCompleter(new DeleteReportTabCompleter(reportRepository));
+        getCommand("akzuwoextension").setExecutor(new AkzuwoExtensionCommand(this));
     }
 
     public ReportRepository getReportRepository() {
@@ -153,6 +156,14 @@ public class AkzuwoExtension extends JavaPlugin implements PluginMessageListener
 
     public String getServerName() {
         return serverName;
+    }
+
+    public void setPendingDelete(String sender, int id) {
+        pendingDeleteReports.put(sender, id);
+    }
+
+    public Integer pollPendingDelete(String sender) {
+        return pendingDeleteReports.remove(sender);
     }
 }
 

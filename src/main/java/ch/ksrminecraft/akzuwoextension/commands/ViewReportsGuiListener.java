@@ -35,7 +35,9 @@ public class ViewReportsGuiListener implements Listener {
         if (event.getCurrentItem() == null || event.getCurrentItem().getType() != Material.PAPER) {
             return;
         }
-        if (!event.getClick().isRightClick()) {
+        boolean rightClick = event.getClick().isRightClick();
+        boolean leftClick = event.getClick().isLeftClick();
+        if (!rightClick && !leftClick) {
             return;
         }
 
@@ -51,10 +53,18 @@ public class ViewReportsGuiListener implements Listener {
 
         String status = report.getStatus();
         String newStatus = null;
-        if ("offen".equalsIgnoreCase(status)) {
-            newStatus = "in Bearbeitung";
-        } else if ("in Bearbeitung".equalsIgnoreCase(status)) {
-            newStatus = "geschlossen";
+        if (rightClick) {
+            if ("offen".equalsIgnoreCase(status)) {
+                newStatus = "in Bearbeitung";
+            } else if ("in Bearbeitung".equalsIgnoreCase(status)) {
+                newStatus = "geschlossen";
+            }
+        } else if (leftClick) {
+            if ("geschlossen".equalsIgnoreCase(status)) {
+                newStatus = "in Bearbeitung";
+            } else if ("in Bearbeitung".equalsIgnoreCase(status)) {
+                newStatus = "offen";
+            }
         }
 
         if (newStatus != null) {
