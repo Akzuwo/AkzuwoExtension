@@ -79,6 +79,9 @@ public class AkzuwoExtension extends JavaPlugin implements PluginMessageListener
 
         // Listener registrieren
         getServer().getPluginManager().registerEvents(new ViewReportsGuiListener(this), this);
+
+        // Nach Updates suchen
+        new UpdateChecker(this).checkForUpdates();
     }
 
     @Override
