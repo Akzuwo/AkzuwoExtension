@@ -3,6 +3,9 @@ package ch.ksrminecraft.akzuwoextension.utils;
 import ch.ksrminecraft.akzuwoextension.AkzuwoExtension;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.entity.Player;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 
 public class ReportPlaceholder extends PlaceholderExpansion {
 
@@ -49,6 +52,11 @@ public class ReportPlaceholder extends PlaceholderExpansion {
             } else {
                 return "Fehler"; // Wenn das Repository nicht verfügbar ist
             }
+        }
+
+        if (identifier.equalsIgnoreCase("cet_time")) {
+            ZonedDateTime now = ZonedDateTime.now(ZoneId.of("Europe/Paris"));
+            return now.format(DateTimeFormatter.ofPattern("HH:mm:ss"));
         }
         return null; // Placeholder ist nicht definiert
     }
