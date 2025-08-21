@@ -9,12 +9,15 @@ import org.bukkit.plugin.messaging.PluginMessageListener;
 
 import java.sql.SQLException;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 public class AkzuwoExtension extends JavaPlugin implements PluginMessageListener {
 
     private static final String CHANNEL = "akzuwo:servername";
     private DatabaseManager databaseManager;
     private ReportRepository reportRepository;
+    private JsonReportStorage jsonReportStorage;
+    private boolean databaseConnected;
     private DiscordNotifier discordNotifier;
     private String serverName;
     private final java.util.Map<String, Integer> pendingDeleteReports = new java.util.HashMap<>();
@@ -54,17 +57,24 @@ public class AkzuwoExtension extends JavaPlugin implements PluginMessageListener
             return;
         }
 
-        // Datenbankverbindung und Repository initialisieren
+        jsonReportStorage = new JsonReportStorage(getDataFolder());
         databaseManager = new DatabaseManager(host, port, database, username, password);
         try {
             databaseManager.connect();
-            reportRepository = new ReportRepository(databaseManager, getLogger());
+            databaseConnected = true;
             getLogger().info("Datenbank erfolgreich verbunden.");
         } catch (SQLException e) {
-            getLogger().severe("Datenbankverbindung konnte nicht hergestellt werden! Plugin wird deaktiviert.");
-            e.printStackTrace();
-            getServer().getPluginManager().disablePlugin(this);
-            return;
+            databaseConnected = false;
+            getLogger().severe("Datenbankverbindung konnte nicht hergestellt werden! Fallback auf lokale JSON-Datei.");
+        }
+
+        reportRepository = new ReportRepository(databaseManager, getLogger(), jsonReportStorage, databaseConnected);
+        if (databaseConnected) {
+            List<Report> pending = jsonReportStorage.getAllReports();
+            jsonReportStorage.clear();
+            for (Report r : pending) {
+                reportRepository.addReport(r.getPlayerUUID(), r.getReporterName(), r.getReason());
+            }
         }
 
         // Registriere Plugin Messaging Channel
@@ -159,6 +169,10 @@ public class AkzuwoExtension extends JavaPlugin implements PluginMessageListener
 
     public String getServerName() {
         return serverName;
+    }
+
+    public boolean isDatabaseConnected() {
+        return reportRepository != null && reportRepository.isDatabaseAvailable();
     }
 
     public void setPendingDelete(String sender, int id) {
