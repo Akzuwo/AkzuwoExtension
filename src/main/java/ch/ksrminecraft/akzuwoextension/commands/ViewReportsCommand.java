@@ -31,6 +31,10 @@ public class ViewReportsCommand implements CommandExecutor {
         // Zugriff auf das ReportRepository
         ReportRepository reportRepository = plugin.getReportRepository();
 
+        if (!plugin.isDatabaseConnected()) {
+            sender.sendMessage(ChatColor.RED + "Hinweis: Es besteht keine Datenbankverbindung. Möglicherweise werden nicht alle Reports angezeigt.");
+        }
+
         // Alle Reports abrufen
         List<Report> reports = reportRepository.getAllReports();
         // Nur offene oder in Bearbeitung befindliche Reports anzeigen
@@ -50,7 +54,8 @@ public class ViewReportsCommand implements CommandExecutor {
             String status = report.getStatus(); // Status des Reports
             String timestamp = report.getTimestamp().toString(); // Zeit des Reports
 
-            sender.sendMessage(ChatColor.YELLOW + "ID: " + report.getId() +
+            String id = report.getId() != null ? String.valueOf(report.getId()) : "-";
+            sender.sendMessage(ChatColor.YELLOW + "ID: " + id +
                     ChatColor.GRAY + " | Spieler: " + playerName +
                     ChatColor.GRAY + " | Grund: " + report.getReason() +
                     ChatColor.GRAY + " | Gemeldet von: " + reporterName +
