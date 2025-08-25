@@ -98,5 +98,10 @@
             <artifactId>mysql-connector-java</artifactId>
             <version>8.0.27</version> <!-- Aktuelle Version prüfen -->
         </dependency>
+        <dependency>
+            <groupId>com.github.Samhuwsluz</groupId>
+            <artifactId>RankPointsAPI</artifactId>
+            <version>v0.1.5</version>
+        </dependency>
     </dependencies>
 </project>

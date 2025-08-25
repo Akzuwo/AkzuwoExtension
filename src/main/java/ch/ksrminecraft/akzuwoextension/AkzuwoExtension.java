@@ -2,6 +2,7 @@ package ch.ksrminecraft.akzuwoextension;
 
 import ch.ksrminecraft.akzuwoextension.commands.*;
 import ch.ksrminecraft.akzuwoextension.utils.*;
+import ch.ksrminecraft.RankPointsAPI.PointsAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -16,6 +17,7 @@ public class AkzuwoExtension extends JavaPlugin implements PluginMessageListener
     private DatabaseManager databaseManager;
     private ReportRepository reportRepository;
     private DiscordNotifier discordNotifier;
+    private PointsAPI pointsAPI;
     private String serverName;
     private final java.util.Map<String, Integer> pendingDeleteReports = new java.util.HashMap<>();
 
@@ -27,11 +29,6 @@ public class AkzuwoExtension extends JavaPlugin implements PluginMessageListener
             return;
         }
         saveDefaultConfig();
-
-        // Placeholder laden
-        if (getServer().getPluginManager().getPlugin("PlaceholderAPI") != null) {
-            new ReportPlaceholder(this).register();
-        }
 
         // Discord Notifier initialisieren
         discordNotifier = new DiscordNotifier(this);
@@ -65,6 +62,35 @@ public class AkzuwoExtension extends JavaPlugin implements PluginMessageListener
             e.printStackTrace();
             getServer().getPluginManager().disablePlugin(this);
             return;
+        }
+
+        // RankPointsAPI initialisieren, falls in der Config aktiviert
+        if (getConfig().getBoolean("rankpointsapi.integration", true)) {
+            String rpHost = getConfig().getString("rankpointsapi.host");
+            int rpPort = getConfig().getInt("rankpointsapi.port");
+            String rpDatabase = getConfig().getString("rankpointsapi.name");
+            String rpUsername = getConfig().getString("rankpointsapi.username");
+            String rpPassword = getConfig().getString("rankpointsapi.password");
+
+            if (rpHost == null || rpHost.isBlank() || rpDatabase == null || rpDatabase.isBlank()
+                    || rpUsername == null || rpUsername.isBlank() || rpPassword == null || rpPassword.isBlank()) {
+                getLogger().warning("Ungültige RankPointsAPI-Datenbankkonfiguration, Integration deaktiviert.");
+            } else {
+                try {
+                    String url = "jdbc:mysql://" + rpHost + ":" + rpPort + "/" + rpDatabase;
+                    pointsAPI = new PointsAPI(url, rpUsername, rpPassword, getLogger(), false);
+                } catch (Exception e) {
+                    getLogger().severe("RankPointsAPI konnte nicht initialisiert werden: " + e.getMessage());
+                }
+            }
+        }
+
+        // Placeholder laden
+        if (getServer().getPluginManager().getPlugin("PlaceholderAPI") != null) {
+            new ReportPlaceholder(this).register();
+            if (pointsAPI != null) {
+                new RankPointsPlaceholder(this).register();
+            }
         }
 
         // Registriere Plugin Messaging Channel
@@ -104,6 +130,15 @@ public class AkzuwoExtension extends JavaPlugin implements PluginMessageListener
             discordNotifier.sendServerNotification(
                     "Plugin wurde auf Server " + name + " heruntergefahren");
             discordNotifier.shutdown();
+        }
+
+        // RankPointsAPI Verbindung schließen
+        if (pointsAPI != null && pointsAPI.getConnection() != null) {
+            try {
+                pointsAPI.getConnection().close();
+            } catch (SQLException e) {
+                getLogger().severe("Fehler beim Schließen der RankPointsAPI-Verbindung: " + e.getMessage());
+            }
         }
 
         // Deregistriere Plugin Messaging Channel
@@ -168,7 +203,8 @@ public class AkzuwoExtension extends JavaPlugin implements PluginMessageListener
     public Integer pollPendingDelete(String sender) {
         return pendingDeleteReports.remove(sender);
     }
-}
 
-//git fetch origin
-//git reset --hard origin/main
+    public PointsAPI getPointsAPI() {
+        return pointsAPI;
+    }
+}
