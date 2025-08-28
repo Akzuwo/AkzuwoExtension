@@ -46,25 +46,25 @@ public class AkzuwoExtension extends JavaPlugin implements PluginMessageListener
         String username = getConfig().getString("database.username");
         String password = getConfig().getString("database.password");
 
-        // Prüfen, ob alle Daten vorhanden sind
+        // Datenbankverbindung und Repository initialisieren
         if (host == null || host.isBlank() || database == null || database.isBlank()
                 || username == null || username.isBlank() || password == null || password.isBlank()) {
-            logger.severe("Ungültige Datenbankkonfiguration. Plugin wird deaktiviert.");
-            getServer().getPluginManager().disablePlugin(this);
-            return;
-        }
-
-        // Datenbankverbindung und Repository initialisieren
-        databaseManager = new DatabaseManager(host, port, database, username, password);
-        try {
-            databaseManager.connect();
-            reportRepository = new ReportRepository(databaseManager, logger);
-            logger.info("Datenbank erfolgreich verbunden.");
-        } catch (SQLException e) {
-            logger.severe("Datenbankverbindung konnte nicht hergestellt werden! Plugin wird deaktiviert.");
-            e.printStackTrace();
-            getServer().getPluginManager().disablePlugin(this);
-            return;
+            logger.warning("Ungültige Datenbankkonfiguration, Offline-Modus wird verwendet.");
+            databaseManager = null;
+            reportRepository = new ReportRepository(null, logger, getDataFolder());
+        } else {
+            databaseManager = new DatabaseManager(host, port, database, username, password);
+            try {
+                databaseManager.connect();
+                reportRepository = new ReportRepository(databaseManager, logger, getDataFolder());
+                reportRepository.migrateOfflineReports();
+                logger.info("Datenbank erfolgreich verbunden.");
+            } catch (SQLException e) {
+                logger.warning("Datenbankverbindung konnte nicht hergestellt werden, Offline-Modus wird verwendet.");
+                e.printStackTrace();
+                databaseManager = null;
+                reportRepository = new ReportRepository(null, logger, getDataFolder());
+            }
         }
 
         // RankPointsAPI initialisieren, falls in der Config aktiviert
