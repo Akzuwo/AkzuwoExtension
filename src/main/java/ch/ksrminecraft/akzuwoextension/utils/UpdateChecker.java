@@ -25,26 +25,26 @@ public class UpdateChecker {
                 connection.setReadTimeout(5000);
 
                 if (connection.getResponseCode() != 200) {
-                    plugin.getLogger().warning("Konnte nicht auf Update-Server zugreifen.");
+                    plugin.getPrefixedLogger().warning("Konnte nicht auf Update-Server zugreifen.");
                     return;
                 }
 
                 try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
                     String latest = reader.readLine();
                     if (latest == null) {
-                        plugin.getLogger().warning("Ungültige Antwort vom Update-Server.");
+                        plugin.getPrefixedLogger().warning("Ungültige Antwort vom Update-Server.");
                         return;
                     }
 
                     String current = plugin.getDescription().getVersion();
                     if (!current.equalsIgnoreCase(latest.trim())) {
-                        plugin.getLogger().info("Eine neue Version (" + latest + ") ist verfügbar!");
+                        plugin.getPrefixedLogger().info("Eine neue Version (" + latest + ") ist verfügbar!");
                     } else {
-                        plugin.getLogger().info("Plugin ist auf dem neuesten Stand.");
+                        plugin.getPrefixedLogger().info("Plugin ist auf dem neuesten Stand.");
                     }
                 }
             } catch (Exception e) {
-                plugin.getLogger().warning("Fehler beim Prüfen auf Updates: " + e.getMessage());
+                plugin.getPrefixedLogger().warning("Fehler beim Prüfen auf Updates: " + e.getMessage());
             }
         });
     }

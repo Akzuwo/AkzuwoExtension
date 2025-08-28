@@ -27,7 +27,7 @@ public class DiscordNotifier {
      */
     public boolean initialize() {
         if (botToken == null || botToken.isBlank()) {
-            plugin.getLogger().warning("Kein Discord-Bot-Token gesetzt. Discord-Funktion deaktiviert.");
+            plugin.getPrefixedLogger().warning("Kein Discord-Bot-Token gesetzt. Discord-Funktion deaktiviert.");
             return false;
         }
 
@@ -36,7 +36,7 @@ public class DiscordNotifier {
             jda.awaitReady(); // Warten, bis der Bot vollständig gestartet ist
             return true;
         } catch (Exception e) {
-            plugin.getLogger().warning("Discord-Bot konnte nicht gestartet werden: " + e.getMessage());
+            plugin.getPrefixedLogger().warning("Discord-Bot konnte nicht gestartet werden: " + e.getMessage());
             return false;
         }
     }
@@ -58,7 +58,7 @@ public class DiscordNotifier {
         if (channel != null) {
             channel.sendMessage(message).queue();
         } else {
-            plugin.getLogger().warning("Textkanal nicht gefunden.");
+            plugin.getPrefixedLogger().warning("Textkanal nicht gefunden.");
         }
     }
 

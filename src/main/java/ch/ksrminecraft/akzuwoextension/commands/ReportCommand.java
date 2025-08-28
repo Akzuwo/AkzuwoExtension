@@ -31,7 +31,7 @@ public class ReportCommand implements CommandExecutor {
             String version = plugin.getDescription().getVersion();
             discordNotifier.sendServerNotification("Plugin Version " + version + " erfolgreich gestartet auf Server: " + serverName);
         } else {
-            plugin.getLogger().warning("DiscordNotifier ist nicht initialisiert.");
+            plugin.getPrefixedLogger().warning("DiscordNotifier ist nicht initialisiert.");
         }
     }
 
@@ -114,7 +114,7 @@ public class ReportCommand implements CommandExecutor {
         ReportRepository reportRepository = plugin.getReportRepository();
         if (reportRepository == null) {
             sender.sendMessage(ChatColor.RED + "Es gab ein Problem mit der Report-Datenbank. Bitte versuche es später erneut.");
-            plugin.getLogger().severe("ReportRepository ist null. Report konnte nicht gespeichert werden.");
+            plugin.getPrefixedLogger().severe("ReportRepository ist null. Report konnte nicht gespeichert werden.");
             return true;
         }
 
@@ -124,7 +124,7 @@ public class ReportCommand implements CommandExecutor {
             sender.sendMessage(ChatColor.GREEN + "Report gegen " + ChatColor.YELLOW + reportedPlayer.getName() + ChatColor.GREEN + " wurde erfolgreich eingereicht.");
         } catch (Exception e) {
             sender.sendMessage(ChatColor.RED + "Fehler beim Speichern des Reports. Bitte versuche es später erneut.");
-            plugin.getLogger().severe("Fehler beim Speichern des Reports: " + e.getMessage());
+            plugin.getPrefixedLogger().severe("Fehler beim Speichern des Reports: " + e.getMessage());
             return true;
         }
 

@@ -14,6 +14,7 @@ import java.nio.charset.StandardCharsets;
 public class AkzuwoExtension extends JavaPlugin implements PluginMessageListener {
 
     private static final String CHANNEL = "akzuwo:servername";
+    private PrefixedLogger logger;
     private DatabaseManager databaseManager;
     private ReportRepository reportRepository;
     private DiscordNotifier discordNotifier;
@@ -23,9 +24,11 @@ public class AkzuwoExtension extends JavaPlugin implements PluginMessageListener
 
     @Override
     public void onEnable() {
+        logger = new PrefixedLogger(super.getLogger());
+
         // Plugin-Ordner erstellen
         if (!getDataFolder().exists() && !getDataFolder().mkdirs()) {
-            getLogger().severe("Fehler beim Erstellen des Plugin-Ordners.");
+            logger.severe("Fehler beim Erstellen des Plugin-Ordners.");
             return;
         }
         saveDefaultConfig();
@@ -46,7 +49,7 @@ public class AkzuwoExtension extends JavaPlugin implements PluginMessageListener
         // Prüfen, ob alle Daten vorhanden sind
         if (host == null || host.isBlank() || database == null || database.isBlank()
                 || username == null || username.isBlank() || password == null || password.isBlank()) {
-            getLogger().severe("Ungültige Datenbankkonfiguration. Plugin wird deaktiviert.");
+            logger.severe("Ungültige Datenbankkonfiguration. Plugin wird deaktiviert.");
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
@@ -55,10 +58,10 @@ public class AkzuwoExtension extends JavaPlugin implements PluginMessageListener
         databaseManager = new DatabaseManager(host, port, database, username, password);
         try {
             databaseManager.connect();
-            reportRepository = new ReportRepository(databaseManager, getLogger());
-            getLogger().info("Datenbank erfolgreich verbunden.");
+            reportRepository = new ReportRepository(databaseManager, logger);
+            logger.info("Datenbank erfolgreich verbunden.");
         } catch (SQLException e) {
-            getLogger().severe("Datenbankverbindung konnte nicht hergestellt werden! Plugin wird deaktiviert.");
+            logger.severe("Datenbankverbindung konnte nicht hergestellt werden! Plugin wird deaktiviert.");
             e.printStackTrace();
             getServer().getPluginManager().disablePlugin(this);
             return;
@@ -74,13 +77,13 @@ public class AkzuwoExtension extends JavaPlugin implements PluginMessageListener
 
             if (rpHost == null || rpHost.isBlank() || rpDatabase == null || rpDatabase.isBlank()
                     || rpUsername == null || rpUsername.isBlank() || rpPassword == null || rpPassword.isBlank()) {
-                getLogger().warning("Ungültige RankPointsAPI-Datenbankkonfiguration, Integration deaktiviert.");
+                logger.warning("Ungültige RankPointsAPI-Datenbankkonfiguration, Integration deaktiviert.");
             } else {
                 try {
                     String url = "jdbc:mysql://" + rpHost + ":" + rpPort + "/" + rpDatabase;
-                    pointsAPI = new PointsAPI(url, rpUsername, rpPassword, getLogger(), false);
+                    pointsAPI = new PointsAPI(url, rpUsername, rpPassword, logger, false);
                 } catch (Exception e) {
-                    getLogger().severe("RankPointsAPI konnte nicht initialisiert werden: " + e.getMessage());
+                    logger.severe("RankPointsAPI konnte nicht initialisiert werden: " + e.getMessage());
                 }
             }
         }
@@ -116,10 +119,10 @@ public class AkzuwoExtension extends JavaPlugin implements PluginMessageListener
         try {
             if (databaseManager != null) {
                 databaseManager.disconnect();
-                getLogger().info("Datenbankverbindung geschlossen.");
+                logger.info("Datenbankverbindung geschlossen.");
             }
         } catch (SQLException e) {
-            getLogger().severe("Fehler beim Schließen der Datenbankverbindung: " + e.getMessage());
+            logger.severe("Fehler beim Schließen der Datenbankverbindung: " + e.getMessage());
         }
 
         // Discord-Benachrichtigung senden und Bot herunterfahren
@@ -137,7 +140,7 @@ public class AkzuwoExtension extends JavaPlugin implements PluginMessageListener
             try {
                 pointsAPI.getConnection().close();
             } catch (SQLException e) {
-                getLogger().severe("Fehler beim Schließen der RankPointsAPI-Verbindung: " + e.getMessage());
+                logger.severe("Fehler beim Schließen der RankPointsAPI-Verbindung: " + e.getMessage());
             }
         }
 
@@ -152,14 +155,14 @@ public class AkzuwoExtension extends JavaPlugin implements PluginMessageListener
 
         // Servername vom Proxy auslesen
         serverName = new String(message, StandardCharsets.UTF_8);
-        getLogger().info("Servername vom Velocity-Proxy: " + serverName);
+        logger.info("Servername vom Velocity-Proxy: " + serverName);
 
         // Discord-Benachrichtigung senden
         if (discordNotifier != null) {
             String version = getDescription().getVersion();
             discordNotifier.sendServerNotification("Plugin Version " + version + " erfolgreich gestartet auf Server: " + serverName);
         } else {
-            getLogger().warning("DiscordNotifier ist nicht initialisiert.");
+            logger.warning("DiscordNotifier ist nicht initialisiert.");
         }
     }
 
@@ -167,7 +170,7 @@ public class AkzuwoExtension extends JavaPlugin implements PluginMessageListener
         // Einen Online-Spieler suchen, um die Anfrage zu senden
         Player player = Bukkit.getOnlinePlayers().stream().findFirst().orElse(null);
         if (player == null) {
-            getLogger().warning("Kein Spieler online, Servername konnte nicht abgefragt werden.");
+            logger.warning("Kein Spieler online, Servername konnte nicht abgefragt werden.");
             return;
         }
 
@@ -190,6 +193,10 @@ public class AkzuwoExtension extends JavaPlugin implements PluginMessageListener
 
     public ReportRepository getReportRepository() {
         return reportRepository;
+    }
+
+    public PrefixedLogger getPrefixedLogger() {
+        return logger;
     }
 
     public String getServerName() {
