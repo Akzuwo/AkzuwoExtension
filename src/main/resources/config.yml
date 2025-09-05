@@ -1,8 +1,8 @@
 # Datenbankkonfiguration für das Report-System
 database:
-  enabled: false
+  enabled: false #if set to false the plugin will create a local json file to log reports
   host: ""
-  port: 3306
+  port: 3306 #default mysql port
   name: ""
   username: ""
   password: ""
@@ -11,7 +11,7 @@ database:
 rankpointsapi:
   integration: true
   host: ""
-  port: 3306
+  port: 3306 #default mysql port
   name: ""
   username: ""
   password: ""
