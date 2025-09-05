@@ -1,5 +1,6 @@
 # Datenbankkonfiguration für das Report-System
 database:
+  enabled: false
   host: ""
   port: 3306
   name: ""
