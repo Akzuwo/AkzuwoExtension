@@ -5,12 +5,17 @@ import ch.ksrminecraft.RankPointsAPI.PointsAPI;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.entity.Player;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
 /**
  * Placeholder für die RankPointsAPI.
  */
 public class RankPointsPlaceholder extends PlaceholderExpansion {
 
     private final AkzuwoExtension plugin;
+    private final Map<UUID, CacheEntry> cache = new HashMap<>();
 
     public RankPointsPlaceholder(AkzuwoExtension plugin) {
         this.plugin = plugin;
@@ -50,12 +55,29 @@ public class RankPointsPlaceholder extends PlaceholderExpansion {
         if (identifier.equalsIgnoreCase("rankpoints")) {
             PointsAPI api = plugin.getPointsAPI();
             if (api != null) {
-                return String.valueOf(api.getPoints(player.getUniqueId()));
+                UUID uuid = player.getUniqueId();
+                long now = System.currentTimeMillis();
+                CacheEntry entry = cache.get(uuid);
+                if (entry == null || now - entry.timestamp > 10_000) {
+                    int points = api.getPoints(uuid);
+                    entry = new CacheEntry(points, now);
+                    cache.put(uuid, entry);
+                }
+                return String.valueOf(entry.points);
             }
             return "0";
         }
 
         return null;
+    }
+    private static class CacheEntry {
+        final int points;
+        final long timestamp;
+
+        CacheEntry(int points, long timestamp) {
+            this.points = points;
+            this.timestamp = timestamp;
+        }
     }
 }
 
