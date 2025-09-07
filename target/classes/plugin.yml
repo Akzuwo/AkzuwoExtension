@@ -1,0 +1,28 @@
+name: AkzuwoExtension
+version: '2.2-0x03'
+main: ch.ksrminecraft.akzuwoextension.AkzuwoExtension
+api-version: '1.20'
+commands:
+  report:
+    description: Report a player.
+    usage: /report <player> <reason>
+  viewreports:
+    description: View all reports.
+    usage: /viewreports
+  viewreportsgui:
+    description: View all reports in a GUI.
+    usage: /viewreportsgui
+  deletereport:
+    description: Delete a report by ID.
+    usage: /deletereport <id>
+  akzuwoextension:
+    description: Base command for confirmations.
+    usage: /akzuwoextension confirm
+
+tutorialcommand: true
+
+
+softdepend: [PlaceholderAPI]
+
+
+
