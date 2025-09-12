@@ -2,7 +2,6 @@ package ch.ksrminecraft.akzuwoextension;
 
 import ch.ksrminecraft.akzuwoextension.commands.*;
 import ch.ksrminecraft.akzuwoextension.utils.*;
-import ch.ksrminecraft.RankPointsAPI.PointsAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;

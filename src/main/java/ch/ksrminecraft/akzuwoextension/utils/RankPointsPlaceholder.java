@@ -1,7 +1,6 @@
 package ch.ksrminecraft.akzuwoextension.utils;
 
 import ch.ksrminecraft.akzuwoextension.AkzuwoExtension;
-import ch.ksrminecraft.RankPointsAPI.PointsAPI;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.entity.Player;
 
