@@ -1,4 +1,4 @@
-package ch.ksrminecraft.RankPointsAPI;
+package ch.ksrminecraft.akzuwoextension.utils;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
