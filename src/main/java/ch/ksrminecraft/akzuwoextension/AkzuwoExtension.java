@@ -19,6 +19,7 @@ public class AkzuwoExtension extends JavaPlugin implements PluginMessageListener
     private ReportRepository reportRepository;
     private DiscordNotifier discordNotifier;
     private PointsAPI pointsAPI;
+    private long rankPointsCheckInterval;
     private String serverName;
     private final java.util.Map<String, Integer> pendingDeleteReports = new java.util.HashMap<>();
 
@@ -75,6 +76,7 @@ public class AkzuwoExtension extends JavaPlugin implements PluginMessageListener
         }
 
         // RankPointsAPI initialisieren, falls in der Config aktiviert
+        rankPointsCheckInterval = getConfig().getLong("rankpointsapi.check-interval", 10) * 1000L;
         if (getConfig().getBoolean("rankpointsapi.integration", true)) {
             String rpHost = getConfig().getString("rankpointsapi.host");
             int rpPort = getConfig().getInt("rankpointsapi.port");
@@ -143,9 +145,9 @@ public class AkzuwoExtension extends JavaPlugin implements PluginMessageListener
         }
 
         // RankPointsAPI Verbindung schließen
-        if (pointsAPI != null && pointsAPI.getConnection() != null) {
+        if (pointsAPI != null) {
             try {
-                pointsAPI.getConnection().close();
+                pointsAPI.close();
             } catch (SQLException e) {
                 logger.severe("Fehler beim Schließen der RankPointsAPI-Verbindung: " + e.getMessage());
             }
@@ -220,5 +222,9 @@ public class AkzuwoExtension extends JavaPlugin implements PluginMessageListener
 
     public PointsAPI getPointsAPI() {
         return pointsAPI;
+    }
+
+    public long getRankPointsCheckInterval() {
+        return rankPointsCheckInterval;
     }
 }

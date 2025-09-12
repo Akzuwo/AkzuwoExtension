@@ -99,9 +99,9 @@
             <version>8.0.27</version> <!-- Aktuelle Version prüfen -->
         </dependency>
         <dependency>
-            <groupId>com.github.timylinigersluz</groupId>
-            <artifactId>RankPointsAPI</artifactId>
-            <version>v0.0.1</version>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+            <version>5.1.0</version>
         </dependency>
     </dependencies>
 </project>

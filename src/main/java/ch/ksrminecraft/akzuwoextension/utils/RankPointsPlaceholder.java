@@ -16,9 +16,11 @@ public class RankPointsPlaceholder extends PlaceholderExpansion {
 
     private final AkzuwoExtension plugin;
     private final Map<UUID, CacheEntry> cache = new HashMap<>();
+    private final long cacheDuration;
 
     public RankPointsPlaceholder(AkzuwoExtension plugin) {
         this.plugin = plugin;
+        this.cacheDuration = plugin.getRankPointsCheckInterval();
     }
 
     @Override
@@ -58,7 +60,7 @@ public class RankPointsPlaceholder extends PlaceholderExpansion {
                 UUID uuid = player.getUniqueId();
                 long now = System.currentTimeMillis();
                 CacheEntry entry = cache.get(uuid);
-                if (entry == null || now - entry.timestamp > 10_000) {
+                if (entry == null || now - entry.timestamp > cacheDuration) {
                     int points = api.getPoints(uuid);
                     entry = new CacheEntry(points, now);
                     cache.put(uuid, entry);
