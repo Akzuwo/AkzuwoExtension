@@ -15,6 +15,7 @@ rankpointsapi:
   name: ""
   username: ""
   password: ""
+  check-interval: 10 # Seconds between RankPoints database queries
 
 discord-bot-token: ""
 discord-channel-id-reports: ""
