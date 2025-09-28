@@ -26,3 +26,11 @@ softdepend: [PlaceholderAPI]
 
 
 
+permissions:
+  akzuwoextension.staff:
+    description: Allows staff members to manage and review player reports.
+    default: op
+  akzuwoextension.exempt:
+    description: Prevents a player from being reported by others.
+    default: false
+
