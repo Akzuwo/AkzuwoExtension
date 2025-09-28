@@ -19,6 +19,10 @@ AkzuwoExtension ist ein Spigot-Plugin, das ein erweitertes Reportsystem mit Disc
 - `%akzuwoextension_cet_time%` – Aktuelle Uhrzeit in Mitteleuropa.
 - `%akzuwo_rankpoints%` – RankPoints des Spielers (nur wenn die RankPointsAPI konfiguriert ist).
 
+## Berechtigungen
+- `akzuwoextension.staff` – Ermöglicht Teammitgliedern, Reports zu verwalten und einzusehen.
+- `akzuwoextension.exempt` – Verhindert, dass ein Spieler über das Reportsystem gemeldet werden kann.
+
 ## Installation
 1. Platziere das Plugin in deinem `plugins`-Ordner.
 2. Starte den Server damit die config.yml generiert wird.
