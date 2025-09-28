@@ -17,25 +17,41 @@ public class AkzuwoExtensionCommand implements CommandExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (args.length == 1 && args[0].equalsIgnoreCase("confirm")) {
-            Integer reportId = plugin.pollPendingDelete(sender.getName());
-            if (reportId == null) {
-                sender.sendMessage(ChatColor.RED + "Es gibt keinen Löschvorgang zu bestätigen.");
+        if (args.length == 1) {
+            if (args[0].equalsIgnoreCase("confirm")) {
+                Integer reportId = plugin.pollPendingDelete(sender.getName());
+                if (reportId == null) {
+                    sender.sendMessage(ChatColor.RED + "Es gibt keinen Löschvorgang zu bestätigen.");
+                    return true;
+                }
+
+                Report report = plugin.getReportRepository().getReportById(reportId);
+                if (report == null) {
+                    sender.sendMessage(ChatColor.RED + "Report mit der ID " + reportId + " wurde nicht gefunden.");
+                    return true;
+                }
+
+                plugin.getReportRepository().deleteReportById(reportId);
+                sender.sendMessage(ChatColor.GREEN + "Report mit der ID " + reportId + " wurde erfolgreich gelöscht.");
                 return true;
             }
 
-            Report report = plugin.getReportRepository().getReportById(reportId);
-            if (report == null) {
-                sender.sendMessage(ChatColor.RED + "Report mit der ID " + reportId + " wurde nicht gefunden.");
+            if (args[0].equalsIgnoreCase("remind")) {
+                if (!sender.hasPermission("akzuwoextension.staff")) {
+                    sender.sendMessage(ChatColor.RED + "Keine Berechtigung.");
+                    return true;
+                }
+
+                if (plugin.triggerReportReminder()) {
+                    sender.sendMessage(ChatColor.GREEN + "Report-Reminder wurde an Discord gesendet.");
+                } else {
+                    sender.sendMessage(ChatColor.RED + "Report-Reminder ist aktuell nicht verfügbar.");
+                }
                 return true;
             }
-
-            plugin.getReportRepository().deleteReportById(reportId);
-            sender.sendMessage(ChatColor.GREEN + "Report mit der ID " + reportId + " wurde erfolgreich gelöscht.");
-            return true;
         }
 
-        sender.sendMessage(ChatColor.RED + "Verwendung: /akzuwoextension confirm");
+        sender.sendMessage(ChatColor.RED + "Verwendung: /akzuwoextension confirm | remind");
         return true;
     }
 }

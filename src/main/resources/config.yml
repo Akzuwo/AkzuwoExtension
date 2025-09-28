@@ -1,3 +1,6 @@
+# Allgemeine Einstellungen
+default-server-name: "Akzuwo" # Name des Servers, der in Discord-Benachrichtigungen erscheint
+
 # Datenbankkonfiguration für das Report-System
 database:
   enabled: false #if set to false the plugin will create a local json file to log reports
@@ -20,6 +23,14 @@ rankpointsapi:
 discord-bot-token: ""
 discord-channel-id-reports: ""
 discord-channel-id-notifications: ""
+
+# Reminder-Einstellungen für offene Reports
+reminders:
+  enabled: false # Aktiviert den automatischen Versand von Erinnerungen
+  interval-minutes: 60 # Intervall in Minuten für wiederkehrende Erinnerungen (wenn keine Versandzeit gesetzt ist)
+  daily-send-time: "" # Optional: Uhrzeit im HH:mm-Format für tägliche Erinnerungen (überschreibt interval-minutes)
+  long-running-threshold-hours: 48 # Ab wie vielen Stunden offene Reports als langlaufend gelten
+  escalate-open-count: 10 # Ab wie vielen offenen Reports eine Eskalationswarnung angefügt wird (0 zum Deaktivieren)
 
 # Report-Einstellungen
 report:
