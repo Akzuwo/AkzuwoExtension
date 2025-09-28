@@ -18,12 +18,16 @@ public class ReportCommand implements CommandExecutor {
     private final AkzuwoExtension plugin;
     private final DiscordNotifier discordNotifier;
     private final Map<UUID, List<Long>> reportCooldown = new HashMap<>();
-    private static final long COOLDOWN_PERIOD = 300_000; // 5 Minuten in Millisekunden
-    private static final int MAX_REPORTS = 2;
+    private final long cooldownPeriodMillis;
+    private final long cooldownPeriodSeconds;
+    private final int maxReports;
 
-    public ReportCommand(AkzuwoExtension plugin, DiscordNotifier discordNotifier) {
+    public ReportCommand(AkzuwoExtension plugin, DiscordNotifier discordNotifier, long cooldownSeconds, int maxReports) {
         this.plugin = plugin;
         this.discordNotifier = discordNotifier;
+        this.cooldownPeriodSeconds = cooldownSeconds;
+        this.cooldownPeriodMillis = cooldownSeconds * 1000L;
+        this.maxReports = maxReports;
 
         String serverName = plugin.getServerName();
         if (discordNotifier != null) {
@@ -74,7 +78,8 @@ public class ReportCommand implements CommandExecutor {
             // Überprüfen, ob der Spieler das Report-Limit erreicht hat
             UUID reporterUUID = reporter.getUniqueId();
             if (!canReport(reporterUUID)) {
-                sender.sendMessage(ChatColor.RED + "Du kannst nur " + MAX_REPORTS + " Spieler innerhalb von 5 Minuten melden.");
+                sender.sendMessage(ChatColor.RED + "Du kannst nur " + maxReports + " Spieler innerhalb von "
+                        + cooldownPeriodSeconds + " Sekunden melden.");
                 return true;
             }
 
@@ -93,10 +98,10 @@ public class ReportCommand implements CommandExecutor {
         long currentTime = System.currentTimeMillis();
 
         // Entferne abgelaufene Timestamps
-        timestamps.removeIf(timestamp -> currentTime - timestamp > COOLDOWN_PERIOD);
+        timestamps.removeIf(timestamp -> currentTime - timestamp > cooldownPeriodMillis);
 
         reportCooldown.put(reporterUUID, timestamps);
-        return timestamps.size() < MAX_REPORTS;
+        return timestamps.size() < maxReports;
     }
 
 

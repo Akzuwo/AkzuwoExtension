@@ -20,3 +20,8 @@ rankpointsapi:
 discord-bot-token: ""
 discord-channel-id-reports: ""
 discord-channel-id-notifications: ""
+
+# Report-Einstellungen
+report:
+  cooldown-seconds: 300 # Zeitfenster in Sekunden, in dem Meldungen begrenzt werden
+  max-reports-per-interval: 2 # Maximale Anzahl an Meldungen pro Spieler innerhalb des Zeitfensters
