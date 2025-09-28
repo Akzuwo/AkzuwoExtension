@@ -10,7 +10,6 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
@@ -26,7 +25,7 @@ public class ReportCommand implements CommandExecutor {
         this.plugin = plugin;
         this.discordNotifier = discordNotifier;
 
-        @Nullable String serverName = plugin.getConfig().getString("default-server-name");
+        String serverName = plugin.getServerName();
         if (discordNotifier != null) {
             String version = plugin.getDescription().getVersion();
             discordNotifier.sendServerNotification("Plugin Version " + version + " erfolgreich gestartet auf Server: " + serverName);
