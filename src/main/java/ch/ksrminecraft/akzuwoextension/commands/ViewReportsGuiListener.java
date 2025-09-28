@@ -10,6 +10,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
@@ -17,9 +18,13 @@ import org.bukkit.persistence.PersistentDataType;
 public class ViewReportsGuiListener implements Listener {
 
     private final AkzuwoExtension plugin;
+    private final NamespacedKey reportIdKey;
+    private final NamespacedKey controlKey;
 
     public ViewReportsGuiListener(AkzuwoExtension plugin) {
         this.plugin = plugin;
+        this.reportIdKey = new NamespacedKey(plugin, ViewReportsGuiCommand.REPORT_ID_KEY);
+        this.controlKey = new NamespacedKey(plugin, ViewReportsGuiCommand.CONTROL_KEY);
     }
 
     @EventHandler
@@ -32,24 +37,45 @@ public class ViewReportsGuiListener implements Listener {
         }
         event.setCancelled(true);
 
-        if (event.getCurrentItem() == null || event.getCurrentItem().getType() != Material.PAPER) {
+        ItemStack currentItem = event.getCurrentItem();
+        if (currentItem == null || currentItem.getType() == Material.AIR) {
             return;
         }
+
+        ItemMeta meta = currentItem.getItemMeta();
+        if (meta == null) {
+            return;
+        }
+
+        Player player = (Player) event.getWhoClicked();
+        ViewReportsGuiCommand.ReportsHolder holder = (ViewReportsGuiCommand.ReportsHolder) event.getInventory().getHolder();
+
+        String control = meta.getPersistentDataContainer().get(controlKey, PersistentDataType.STRING);
+        if (control != null) {
+            handleControlClick(player, holder, event.getInventory(), control);
+            return;
+        }
+
+        if (currentItem.getType() != Material.PAPER) {
+            return;
+        }
+
         boolean rightClick = event.getClick().isRightClick();
         boolean leftClick = event.getClick().isLeftClick();
         if (!rightClick && !leftClick) {
             return;
         }
 
-        ItemMeta meta = event.getCurrentItem().getItemMeta();
-        if (meta == null) return;
-        NamespacedKey key = new NamespacedKey(plugin, "reportId");
-        Integer id = meta.getPersistentDataContainer().get(key, PersistentDataType.INTEGER);
-        if (id == null) return;
+        Integer id = meta.getPersistentDataContainer().get(reportIdKey, PersistentDataType.INTEGER);
+        if (id == null) {
+            return;
+        }
 
         ReportRepository repo = plugin.getReportRepository();
         Report report = repo.getReportById(id);
-        if (report == null) return;
+        if (report == null) {
+            return;
+        }
 
         String status = report.getStatus();
         String newStatus = null;
@@ -70,8 +96,32 @@ public class ViewReportsGuiListener implements Listener {
         if (newStatus != null) {
             repo.updateReportStatus(id, newStatus);
             meta.setDisplayName(ChatColor.YELLOW + "ID " + id + " [" + newStatus + "]");
-            event.getCurrentItem().setItemMeta(meta);
-            ((Player) event.getWhoClicked()).sendMessage(ChatColor.GREEN + "Report " + id + " ist nun " + newStatus + ".");
+            currentItem.setItemMeta(meta);
+            player.sendMessage(ChatColor.GREEN + "Report " + id + " ist nun " + newStatus + ".");
+            holder.getCommand().refreshInventory(player, holder, event.getInventory());
+        }
+    }
+
+    private void handleControlClick(Player player, ViewReportsGuiCommand.ReportsHolder holder,
+                                     Inventory inventory, String control) {
+        switch (control) {
+            case "previous":
+                if (holder.getPage() > 0) {
+                    holder.setPage(holder.getPage() - 1);
+                    holder.getCommand().refreshInventory(player, holder, inventory);
+                }
+                break;
+            case "next":
+                holder.setPage(holder.getPage() + 1);
+                holder.getCommand().refreshInventory(player, holder, inventory);
+                break;
+            case "filter":
+                holder.setOnlyOpen(!holder.isOnlyOpen());
+                holder.setPage(0);
+                holder.getCommand().refreshInventory(player, holder, inventory);
+                break;
+            default:
+                break;
         }
     }
 }
