@@ -3,16 +3,11 @@ package ch.ksrminecraft.akzuwoextension;
 import ch.ksrminecraft.akzuwoextension.commands.*;
 import ch.ksrminecraft.akzuwoextension.utils.*;
 import org.bukkit.Bukkit;
-import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.plugin.messaging.PluginMessageListener;
 
 import java.sql.SQLException;
-import java.nio.charset.StandardCharsets;
 
-public class AkzuwoExtension extends JavaPlugin implements PluginMessageListener {
-
-    private static final String CHANNEL = "akzuwo:servername";
+public class AkzuwoExtension extends JavaPlugin {
     private PrefixedLogger logger;
     private DatabaseManager databaseManager;
     private ReportRepository reportRepository;
@@ -32,6 +27,11 @@ public class AkzuwoExtension extends JavaPlugin implements PluginMessageListener
             return;
         }
         saveDefaultConfig();
+
+        serverName = getConfig().getString("default-server-name", "Unbekannt");
+        if (serverName == null || serverName.isBlank()) {
+            serverName = "Unbekannt";
+        }
 
         // Discord Notifier initialisieren
         discordNotifier = new DiscordNotifier(this);
@@ -104,13 +104,6 @@ public class AkzuwoExtension extends JavaPlugin implements PluginMessageListener
             }
         }
 
-        // Registriere Plugin Messaging Channel
-        Bukkit.getMessenger().registerOutgoingPluginChannel(this, CHANNEL);
-        Bukkit.getMessenger().registerIncomingPluginChannel(this, CHANNEL, this);
-
-        // Servernamen vom Proxy anfordern
-        requestServerName();
-
         // Commands und TabCompleter registrieren
         registerCommands();
 
@@ -152,38 +145,6 @@ public class AkzuwoExtension extends JavaPlugin implements PluginMessageListener
             }
         }
 
-        // Deregistriere Plugin Messaging Channel
-        Bukkit.getMessenger().unregisterOutgoingPluginChannel(this);
-        Bukkit.getMessenger().unregisterIncomingPluginChannel(this);
-    }
-
-    @Override
-    public void onPluginMessageReceived(String channel, Player player, byte[] message) {
-        if (!channel.equals(CHANNEL)) return;
-
-        // Servername vom Proxy auslesen
-        serverName = new String(message, StandardCharsets.UTF_8);
-        logger.info("Servername vom Velocity-Proxy: " + serverName);
-
-        // Discord-Benachrichtigung senden
-        if (discordNotifier != null) {
-            String version = getDescription().getVersion();
-            discordNotifier.sendServerNotification("Plugin Version " + version + " erfolgreich gestartet auf Server: " + serverName);
-        } else {
-            logger.warning("DiscordNotifier ist nicht initialisiert.");
-        }
-    }
-
-    private void requestServerName() {
-        // Einen Online-Spieler suchen, um die Anfrage zu senden
-        Player player = Bukkit.getOnlinePlayers().stream().findFirst().orElse(null);
-        if (player == null) {
-            logger.warning("Kein Spieler online, Servername konnte nicht abgefragt werden.");
-            return;
-        }
-
-        // Plugin-Message senden, um den Servernamen anzufordern
-        player.sendPluginMessage(this, CHANNEL, new byte[0]);
     }
 
     /**
