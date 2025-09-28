@@ -6,6 +6,7 @@ import java.io.*;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.logging.Logger;
 
 public class ReportRepository  {
@@ -159,6 +160,63 @@ public class ReportRepository  {
                     obj.get("status").getAsString(),
                     new Timestamp(obj.get("timestamp").getAsLong())
             ));
+        }
+        return reports;
+    }
+
+    /**
+     * Ruft alle Reports für einen bestimmten Spieler ab.
+     *
+     * @param uuid UUID des gemeldeten Spielers
+     * @return Eine Liste der passenden Reports
+     */
+    public List<Report> getReportsByPlayer(UUID uuid) {
+        List<Report> reports = new ArrayList<>();
+        if (uuid == null) {
+            return reports;
+        }
+
+        if (databaseManager != null) {
+            String sql = "SELECT * FROM reports WHERE player_uuid = ?";
+
+            try (Connection connection = databaseManager.getConnection();
+                 PreparedStatement statement = connection.prepareStatement(sql)) {
+
+                statement.setString(1, uuid.toString());
+
+                try (ResultSet resultSet = statement.executeQuery()) {
+                    while (resultSet.next()) {
+                        int id = resultSet.getInt("id");
+                        String playerUUID = resultSet.getString("player_uuid");
+                        String reporterName = resultSet.getString("reporter_name");
+                        String reason = resultSet.getString("reason");
+                        String status = resultSet.getString("status");
+                        Timestamp timestamp = resultSet.getTimestamp("timestamp");
+
+                        reports.add(new Report(id, playerUUID, reporterName, reason, status, timestamp));
+                    }
+                }
+
+            } catch (SQLException e) {
+                logger.severe("Fehler beim Abrufen der Reports für Spieler " + uuid + ": " + e.getMessage());
+            }
+
+            return reports;
+        }
+
+        JsonArray array = loadJson();
+        for (JsonElement element : array) {
+            JsonObject obj = element.getAsJsonObject();
+            if (uuid.toString().equalsIgnoreCase(obj.get("player_uuid").getAsString())) {
+                reports.add(new Report(
+                        obj.get("id").getAsInt(),
+                        obj.get("player_uuid").getAsString(),
+                        obj.get("reporter_name").getAsString(),
+                        obj.get("reason").getAsString(),
+                        obj.get("status").getAsString(),
+                        new Timestamp(obj.get("timestamp").getAsLong())
+                ));
+            }
         }
         return reports;
     }

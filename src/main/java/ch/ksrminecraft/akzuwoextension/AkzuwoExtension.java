@@ -157,6 +157,9 @@ public class AkzuwoExtension extends JavaPlugin {
         getCommand("viewreportsgui").setExecutor(new ViewReportsGuiCommand(this));
         getCommand("deletereport").setExecutor(new DeleteReportCommand(this, reportRepository));
         getCommand("deletereport").setTabCompleter(new DeleteReportTabCompleter(reportRepository));
+        ViewPlayerReportsCommand viewPlayerReportsCommand = new ViewPlayerReportsCommand(this);
+        getCommand("viewplayerreports").setExecutor(viewPlayerReportsCommand);
+        getCommand("viewplayerreports").setTabCompleter(viewPlayerReportsCommand);
         getCommand("akzuwoextension").setExecutor(new AkzuwoExtensionCommand(this));
     }
 
