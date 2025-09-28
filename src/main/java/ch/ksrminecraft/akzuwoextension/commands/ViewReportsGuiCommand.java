@@ -21,19 +21,25 @@ import org.bukkit.persistence.PersistentDataType;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public class ViewReportsGuiCommand implements CommandExecutor {
 
     public static final String REPORT_ID_KEY = "reportId";
     public static final String CONTROL_KEY = "reportsControl";
+    public static final String CONTROL_PREVIOUS = "previous";
+    public static final String CONTROL_NEXT = "next";
+    public static final String CONTROL_FILTER = "filter";
     private static final int INVENTORY_SIZE = 54;
     private static final int ITEMS_PER_PAGE = 45;
 
     private final AkzuwoExtension plugin;
     private final NamespacedKey reportIdKey;
     private final NamespacedKey controlKey;
+    private final Map<UUID, ReportsHolder> holders = new HashMap<>();
 
     public ViewReportsGuiCommand(AkzuwoExtension plugin) {
         this.plugin = plugin;
@@ -53,8 +59,9 @@ public class ViewReportsGuiCommand implements CommandExecutor {
         }
 
         Player player = (Player) sender;
-        ReportsHolder holder = new ReportsHolder(this);
-        Inventory inventory = Bukkit.createInventory(holder, INVENTORY_SIZE, ChatColor.DARK_RED + "Reports");
+        ReportsHolder holder = holders.computeIfAbsent(player.getUniqueId(), id -> new ReportsHolder(this, id));
+        holder.attachInventory(Bukkit.createInventory(holder, INVENTORY_SIZE, ChatColor.DARK_RED + "Reports"));
+        Inventory inventory = holder.getInventory();
         populateInventory(inventory, holder);
         player.openInventory(inventory);
         if (holder.getTotalReports() == 0) {
@@ -65,6 +72,9 @@ public class ViewReportsGuiCommand implements CommandExecutor {
     }
 
     void populateInventory(Inventory inventory, ReportsHolder holder) {
+        if (inventory == null) {
+            return;
+        }
         inventory.clear();
 
         List<Report> reports = getFilteredReports(holder.isOnlyOpen());
@@ -72,10 +82,7 @@ public class ViewReportsGuiCommand implements CommandExecutor {
 
         int totalPages = Math.max(1, (int) Math.ceil((double) reports.size() / ITEMS_PER_PAGE));
         holder.setTotalPages(totalPages);
-
-        if (holder.getPage() >= totalPages) {
-            holder.setPage(totalPages - 1);
-        }
+        holder.clampPage();
 
         int startIndex = holder.getPage() * ITEMS_PER_PAGE;
         int endIndex = Math.min(startIndex + ITEMS_PER_PAGE, reports.size());
@@ -106,14 +113,15 @@ public class ViewReportsGuiCommand implements CommandExecutor {
     }
 
     void refreshInventory(Player player, ReportsHolder holder, Inventory inventory) {
+        holder.attachInventory(inventory);
         populateInventory(inventory, holder);
         sendStatusMessage(player, holder);
     }
 
     private void addNavigationItems(Inventory inventory, ReportsHolder holder) {
         int baseSlot = INVENTORY_SIZE - 9;
-        inventory.setItem(baseSlot, createNavigationItem("previous", holder.getPage() > 0, holder));
-        inventory.setItem(baseSlot + 8, createNavigationItem("next", holder.getPage() < holder.getTotalPages() - 1, holder));
+        inventory.setItem(baseSlot, createNavigationItem(CONTROL_PREVIOUS, holder.getPage() > 0, holder));
+        inventory.setItem(baseSlot + 8, createNavigationItem(CONTROL_NEXT, holder.getPage() < holder.getTotalPages() - 1, holder));
         inventory.setItem(baseSlot + 4, createPageIndicator(holder));
         inventory.setItem(baseSlot + 5, createFilterItem(holder));
     }
@@ -124,7 +132,7 @@ public class ViewReportsGuiCommand implements CommandExecutor {
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
             if (enabled) {
-                String displayName = type.equals("previous")
+                String displayName = type.equals(CONTROL_PREVIOUS)
                         ? ChatColor.GREEN + "Vorherige Seite"
                         : ChatColor.GREEN + "Nächste Seite";
                 meta.setDisplayName(displayName);
@@ -132,7 +140,7 @@ public class ViewReportsGuiCommand implements CommandExecutor {
                         + (holder.getPage() + 1) + "/" + holder.getTotalPages()));
                 meta.getPersistentDataContainer().set(controlKey, PersistentDataType.STRING, type);
             } else {
-                String displayName = type.equals("previous")
+                String displayName = type.equals(CONTROL_PREVIOUS)
                         ? ChatColor.DARK_GRAY + "Keine vorherige Seite"
                         : ChatColor.DARK_GRAY + "Keine nächste Seite";
                 meta.setDisplayName(displayName);
@@ -161,7 +169,7 @@ public class ViewReportsGuiCommand implements CommandExecutor {
         if (meta != null) {
             meta.setDisplayName(ChatColor.AQUA + "Filter: " + (onlyOpen ? "Nur offene" : "Alle"));
             meta.setLore(Arrays.asList(ChatColor.GRAY + "Klicke zum Umschalten"));
-            meta.getPersistentDataContainer().set(controlKey, PersistentDataType.STRING, "filter");
+            meta.getPersistentDataContainer().set(controlKey, PersistentDataType.STRING, CONTROL_FILTER);
             item.setItemMeta(meta);
         }
         return item;
@@ -197,24 +205,35 @@ public class ViewReportsGuiCommand implements CommandExecutor {
     }
 
     private String getPlayerNameFromUUID(String uuid) {
-        OfflinePlayer player = Bukkit.getOfflinePlayer(UUID.fromString(uuid));
-        return player.getName() != null ? player.getName() : "Unbekannt";
+        try {
+            OfflinePlayer player = Bukkit.getOfflinePlayer(UUID.fromString(uuid));
+            return player.getName() != null ? player.getName() : "Unbekannt";
+        } catch (IllegalArgumentException ex) {
+            return uuid;
+        }
     }
 
     public static class ReportsHolder implements InventoryHolder {
 
         private final ViewReportsGuiCommand command;
+        private final UUID viewerId;
+        private Inventory inventory;
         private int page;
         private int totalPages = 1;
         private int totalReports;
         private boolean onlyOpen;
 
-        public ReportsHolder(ViewReportsGuiCommand command) {
+        public ReportsHolder(ViewReportsGuiCommand command, UUID viewerId) {
             this.command = command;
+            this.viewerId = viewerId;
         }
 
         public ViewReportsGuiCommand getCommand() {
             return command;
+        }
+
+        public UUID getViewerId() {
+            return viewerId;
         }
 
         public int getPage() {
@@ -222,7 +241,8 @@ public class ViewReportsGuiCommand implements CommandExecutor {
         }
 
         public void setPage(int page) {
-            this.page = Math.max(0, page);
+            this.page = page;
+            clampPage();
         }
 
         public int getTotalPages() {
@@ -231,6 +251,7 @@ public class ViewReportsGuiCommand implements CommandExecutor {
 
         public void setTotalPages(int totalPages) {
             this.totalPages = Math.max(1, totalPages);
+            clampPage();
         }
 
         public int getTotalReports() {
@@ -249,9 +270,25 @@ public class ViewReportsGuiCommand implements CommandExecutor {
             this.onlyOpen = onlyOpen;
         }
 
+        public void attachInventory(Inventory inventory) {
+            this.inventory = inventory;
+        }
+
+        public void clampPage() {
+            if (totalPages <= 0) {
+                totalPages = 1;
+            }
+            if (page >= totalPages) {
+                page = totalPages - 1;
+            }
+            if (page < 0) {
+                page = 0;
+            }
+        }
+
         @Override
         public Inventory getInventory() {
-            return null;
+            return inventory;
         }
     }
 }

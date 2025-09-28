@@ -35,6 +35,10 @@ public class ViewReportsGuiListener implements Listener {
         if (!(event.getInventory().getHolder() instanceof ViewReportsGuiCommand.ReportsHolder)) {
             return;
         }
+        if (event.getClickedInventory() == null
+                || event.getClickedInventory().getHolder() != event.getInventory().getHolder()) {
+            return;
+        }
         event.setCancelled(true);
 
         ItemStack currentItem = event.getCurrentItem();
@@ -95,8 +99,6 @@ public class ViewReportsGuiListener implements Listener {
 
         if (newStatus != null) {
             repo.updateReportStatus(id, newStatus);
-            meta.setDisplayName(ChatColor.YELLOW + "ID " + id + " [" + newStatus + "]");
-            currentItem.setItemMeta(meta);
             player.sendMessage(ChatColor.GREEN + "Report " + id + " ist nun " + newStatus + ".");
             holder.getCommand().refreshInventory(player, holder, event.getInventory());
         }
@@ -105,17 +107,23 @@ public class ViewReportsGuiListener implements Listener {
     private void handleControlClick(Player player, ViewReportsGuiCommand.ReportsHolder holder,
                                      Inventory inventory, String control) {
         switch (control) {
-            case "previous":
+            case ViewReportsGuiCommand.CONTROL_PREVIOUS:
                 if (holder.getPage() > 0) {
                     holder.setPage(holder.getPage() - 1);
                     holder.getCommand().refreshInventory(player, holder, inventory);
+                } else {
+                    player.sendMessage(ChatColor.RED + "Du bist bereits auf der ersten Seite.");
                 }
                 break;
-            case "next":
-                holder.setPage(holder.getPage() + 1);
-                holder.getCommand().refreshInventory(player, holder, inventory);
+            case ViewReportsGuiCommand.CONTROL_NEXT:
+                if (holder.getPage() < holder.getTotalPages() - 1) {
+                    holder.setPage(holder.getPage() + 1);
+                    holder.getCommand().refreshInventory(player, holder, inventory);
+                } else {
+                    player.sendMessage(ChatColor.RED + "Du bist bereits auf der letzten Seite.");
+                }
                 break;
-            case "filter":
+            case ViewReportsGuiCommand.CONTROL_FILTER:
                 holder.setOnlyOpen(!holder.isOnlyOpen());
                 holder.setPage(0);
                 holder.getCommand().refreshInventory(player, holder, inventory);
