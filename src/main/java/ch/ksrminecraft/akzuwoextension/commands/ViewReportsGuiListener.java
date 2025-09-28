@@ -1,6 +1,7 @@
 package ch.ksrminecraft.akzuwoextension.commands;
 
 import ch.ksrminecraft.akzuwoextension.AkzuwoExtension;
+import ch.ksrminecraft.akzuwoextension.utils.DiscordNotifier;
 import ch.ksrminecraft.akzuwoextension.utils.Report;
 import ch.ksrminecraft.akzuwoextension.utils.ReportRepository;
 import org.bukkit.ChatColor;
@@ -17,9 +18,11 @@ import org.bukkit.persistence.PersistentDataType;
 public class ViewReportsGuiListener implements Listener {
 
     private final AkzuwoExtension plugin;
+    private final DiscordNotifier discordNotifier;
 
     public ViewReportsGuiListener(AkzuwoExtension plugin) {
         this.plugin = plugin;
+        this.discordNotifier = plugin.getDiscordNotifier();
     }
 
     @EventHandler
@@ -71,7 +74,28 @@ public class ViewReportsGuiListener implements Listener {
             repo.updateReportStatus(id, newStatus);
             meta.setDisplayName(ChatColor.YELLOW + "ID " + id + " [" + newStatus + "]");
             event.getCurrentItem().setItemMeta(meta);
-            ((Player) event.getWhoClicked()).sendMessage(ChatColor.GREEN + "Report " + id + " ist nun " + newStatus + ".");
+
+            Player staffMember = (Player) event.getWhoClicked();
+            staffMember.sendMessage(ChatColor.GREEN + "Report " + id + " ist nun " + newStatus + ".");
+
+            notifyDiscordStatusChange(staffMember, id, status, newStatus);
         }
+    }
+
+    private void notifyDiscordStatusChange(Player staffMember, int reportId, String oldStatus, String newStatus) {
+        if (discordNotifier == null) {
+            plugin.getPrefixedLogger().warning("DiscordNotifier ist nicht konfiguriert. Statusänderung von Report " + reportId + " wurde nicht an Discord gesendet.");
+            return;
+        }
+
+        String previousStatus = (oldStatus == null || oldStatus.isBlank()) ? "unbekannt" : oldStatus;
+        String updatedStatus = (newStatus == null || newStatus.isBlank()) ? "unbekannt" : newStatus;
+
+        String message = "**Report-Status aktualisiert**\n" +
+                "Report-ID: `" + reportId + "`\n" +
+                "Status: `" + previousStatus + "` → `" + updatedStatus + "`\n" +
+                "Bearbeitet von: `" + staffMember.getName() + "`";
+
+        discordNotifier.sendReportNotification(message);
     }
 }
