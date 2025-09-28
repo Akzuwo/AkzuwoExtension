@@ -13,6 +13,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
 public class ViewReportsGuiListener implements Listener {
@@ -35,20 +36,52 @@ public class ViewReportsGuiListener implements Listener {
         }
         event.setCancelled(true);
 
-        if (event.getCurrentItem() == null || event.getCurrentItem().getType() != Material.PAPER) {
+        ItemStack clickedItem = event.getCurrentItem();
+        if (clickedItem == null || clickedItem.getType() == Material.AIR) {
             return;
         }
+
+        ItemMeta meta = clickedItem.getItemMeta();
+        if (meta == null) {
+            return;
+        }
+
+        ViewReportsGuiCommand.ReportsHolder holder = (ViewReportsGuiCommand.ReportsHolder) event.getInventory().getHolder();
+        PersistentDataContainer container = meta.getPersistentDataContainer();
+        NamespacedKey navigationKey = holder.getNavigationKey();
+        NamespacedKey filterKey = holder.getFilterKey();
+        NamespacedKey reportKey = holder.getReportIdKey();
+        Player player = (Player) event.getWhoClicked();
+
+        if (container.has(navigationKey, PersistentDataType.STRING)) {
+            String direction = container.get(navigationKey, PersistentDataType.STRING);
+            if (ViewReportsGuiCommand.ReportsHolder.NAVIGATION_PREVIOUS.equals(direction)) {
+                holder.previousPage();
+            } else if (ViewReportsGuiCommand.ReportsHolder.NAVIGATION_NEXT.equals(direction)) {
+                holder.nextPage();
+            }
+            holder.refreshInventory();
+            sendPageFeedback(player, holder);
+            return;
+        }
+
+        if (container.has(filterKey, PersistentDataType.STRING)) {
+            holder.toggleFilter();
+            holder.refreshInventory();
+            sendPageFeedback(player, holder);
+            return;
+        }
+
+        Integer id = container.get(reportKey, PersistentDataType.INTEGER);
+        if (id == null) {
+            return;
+        }
+
         boolean rightClick = event.getClick().isRightClick();
         boolean leftClick = event.getClick().isLeftClick();
         if (!rightClick && !leftClick) {
             return;
         }
-
-        ItemMeta meta = event.getCurrentItem().getItemMeta();
-        if (meta == null) return;
-        NamespacedKey key = new NamespacedKey(plugin, "reportId");
-        Integer id = meta.getPersistentDataContainer().get(key, PersistentDataType.INTEGER);
-        if (id == null) return;
 
         ReportRepository repo = plugin.getReportRepository();
         Report report = repo.getReportById(id);
@@ -73,13 +106,19 @@ public class ViewReportsGuiListener implements Listener {
         if (newStatus != null) {
             repo.updateReportStatus(id, newStatus);
             meta.setDisplayName(ChatColor.YELLOW + "ID " + id + " [" + newStatus + "]");
-            event.getCurrentItem().setItemMeta(meta);
+            clickedItem.setItemMeta(meta);
 
-            Player staffMember = (Player) event.getWhoClicked();
-            staffMember.sendMessage(ChatColor.GREEN + "Report " + id + " ist nun " + newStatus + ".");
+            player.sendMessage(ChatColor.GREEN + "Report " + id + " ist nun " + newStatus + ".");
 
-            notifyDiscordStatusChange(staffMember, id, status, newStatus);
+            holder.refreshInventory();
+            sendPageFeedback(player, holder);
+            notifyDiscordStatusChange(player, id, status, newStatus);
         }
+    }
+
+    private void sendPageFeedback(Player player, ViewReportsGuiCommand.ReportsHolder holder) {
+        player.sendMessage(ChatColor.GOLD + "Seite " + (holder.getPage() + 1) + "/" + holder.getTotalPages() +
+                ChatColor.GRAY + " | Filter: " + ChatColor.AQUA + holder.getFilterDisplayName());
     }
 
     private void notifyDiscordStatusChange(Player staffMember, int reportId, String oldStatus, String newStatus) {
