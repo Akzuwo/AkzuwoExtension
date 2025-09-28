@@ -16,6 +16,8 @@ public class AkzuwoExtension extends JavaPlugin {
     private long rankPointsCheckInterval;
     private String serverName;
     private final java.util.Map<String, Integer> pendingDeleteReports = new java.util.HashMap<>();
+    private long reportCooldownSeconds;
+    private int reportMaxReports;
 
     @Override
     public void onEnable() {
@@ -32,6 +34,9 @@ public class AkzuwoExtension extends JavaPlugin {
         if (serverName == null || serverName.isBlank()) {
             serverName = "Unbekannt";
         }
+
+        reportCooldownSeconds = Math.max(1L, getConfig().getLong("report.cooldown-seconds", 300L));
+        reportMaxReports = Math.max(1, getConfig().getInt("report.max-reports-per-interval", 2));
 
         // Discord Notifier initialisieren
         discordNotifier = new DiscordNotifier(this);
@@ -151,7 +156,7 @@ public class AkzuwoExtension extends JavaPlugin {
      * Registriert alle Commands und zugehörigen TabCompleter.
      */
     private void registerCommands() {
-        getCommand("report").setExecutor(new ReportCommand(this, discordNotifier));
+        getCommand("report").setExecutor(new ReportCommand(this, discordNotifier, reportCooldownSeconds, reportMaxReports));
         getCommand("report").setTabCompleter(new ReportTabCompleter());
         getCommand("viewreports").setExecutor(new ViewReportsCommand(this));
         getCommand("viewreportsgui").setExecutor(new ViewReportsGuiCommand(this));
