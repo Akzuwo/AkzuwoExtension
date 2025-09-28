@@ -21,10 +21,7 @@ commands:
 
 tutorialcommand: true
 
-
 softdepend: [PlaceholderAPI]
-
-
 
 permissions:
   akzuwoextension.staff:
