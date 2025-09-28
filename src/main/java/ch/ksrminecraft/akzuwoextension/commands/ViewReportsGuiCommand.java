@@ -114,7 +114,7 @@ public class ViewReportsGuiCommand implements CommandExecutor {
         }
 
         public void toggleFilter() {
-            filter = filter == StatusFilter.ALL ? StatusFilter.OPEN_ONLY : StatusFilter.ALL;
+            filter = filter.next();
             page = 0;
         }
 
@@ -155,9 +155,7 @@ public class ViewReportsGuiCommand implements CommandExecutor {
 
             List<Report> filtered = new ArrayList<>();
             for (Report report : reports) {
-                if (filter == StatusFilter.ALL) {
-                    filtered.add(report);
-                } else if (filter == StatusFilter.OPEN_ONLY && report.getStatus() != null && report.getStatus().equalsIgnoreCase("offen")) {
+                if (filter.matches(report)) {
                     filtered.add(report);
                 }
             }
@@ -248,6 +246,8 @@ public class ViewReportsGuiCommand implements CommandExecutor {
                 meta.setDisplayName(ChatColor.AQUA + "Filter: " + filter.getDisplayName());
                 List<String> lore = new ArrayList<>();
                 lore.add(ChatColor.GRAY + "Linksklick zum Umschalten");
+                lore.add(ChatColor.YELLOW + "Aktiv: " + ChatColor.WHITE + filter.getDisplayName());
+                lore.add(ChatColor.GRAY + "Nächster Filter: " + filter.next().getDisplayName());
                 meta.setLore(lore);
                 meta.getPersistentDataContainer().set(filterKey, PersistentDataType.STRING, "toggle");
                 item.setItemMeta(meta);
@@ -282,7 +282,9 @@ public class ViewReportsGuiCommand implements CommandExecutor {
 
         private enum StatusFilter {
             ALL("Alle"),
-            OPEN_ONLY("Nur offen");
+            OPEN_ONLY("Nur offen"),
+            IN_PROGRESS_ONLY("Nur in Bearbeitung"),
+            CLOSED_ONLY("Nur geschlossen");
 
             private final String displayName;
 
@@ -292,6 +294,33 @@ public class ViewReportsGuiCommand implements CommandExecutor {
 
             public String getDisplayName() {
                 return displayName;
+            }
+
+            public StatusFilter next() {
+                StatusFilter[] values = StatusFilter.values();
+                return values[(ordinal() + 1) % values.length];
+            }
+
+            public boolean matches(Report report) {
+                if (this == ALL) {
+                    return true;
+                }
+
+                String status = report.getStatus();
+                if (status == null) {
+                    return false;
+                }
+
+                switch (this) {
+                    case OPEN_ONLY:
+                        return status.equalsIgnoreCase("offen");
+                    case IN_PROGRESS_ONLY:
+                        return status.equalsIgnoreCase("in Bearbeitung");
+                    case CLOSED_ONLY:
+                        return status.equalsIgnoreCase("geschlossen");
+                    default:
+                        return false;
+                }
             }
         }
     }
