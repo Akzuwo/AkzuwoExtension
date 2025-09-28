@@ -12,6 +12,9 @@ commands:
   viewreportsgui:
     description: View all reports in a GUI.
     usage: /viewreportsgui
+  viewplayerreports:
+    description: View reports for a specific player.
+    usage: /viewplayerreports <player>
   deletereport:
     description: Delete a report by ID.
     usage: /deletereport <id>
