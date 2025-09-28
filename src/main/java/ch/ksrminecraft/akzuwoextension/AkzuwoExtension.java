@@ -168,6 +168,10 @@ public class AkzuwoExtension extends JavaPlugin {
         return logger;
     }
 
+    public DiscordNotifier getDiscordNotifier() {
+        return discordNotifier;
+    }
+
     public String getServerName() {
         return serverName;
     }
