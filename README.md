@@ -4,15 +4,28 @@ AkzuwoExtension ist ein Spigot-Plugin, das ein erweitertes Reportsystem mit Disc
 
 ## Commands
 - `/report <Spieler> <Grund>` – Meldet einen Spieler. Meldungen werden an Teammitglieder und auf Discord weitergeleitet.
+- `/report claim <ID>` – Weist dir einen offenen Report zu (setzt den Status automatisch auf „in Bearbeitung“).
+- `/report unclaim <ID>` – Gibt einen Report wieder frei.
+- `/report note <ID> <Text|clear>` – Hinterlässt oder entfernt eine Notiz zu einem Report.
 - `/viewreports` – Zeigt offene oder in Bearbeitung befindliche Reports im Chat an.
 - `/viewreportsgui` – Öffnet eine GUI zur Verwaltung der Reports. Rechtsklick erhöht, Linksklick verringert den Status.
 - `/deletereport <ID>` – Markiert einen Report zur Löschung.
 - `/akzuwoextension confirm` – Bestätigt das Löschen eines zuvor markierten Reports.
 
 ## Verwendung des GUI
-- Es gibt 3 Zustände für Reports (offen/in Bearbeitung/gschlossen)
-- Mit rechtsklick kann der Zustand von 'offen' z'u in Bearbeitung' und von 'in Bearbeitung' zu 'gschlossen' geändert werden
-- Mit linksklick kann der Zustand in die andere Richtung geändert werden
+- Es gibt 3 Zustände für Reports (offen/in Bearbeitung/geschlossen).
+- Mit Rechtsklick kann der Zustand von „offen“ zu „in Bearbeitung“ und von „in Bearbeitung“ zu „geschlossen“ geändert werden.
+- Mit Linksklick kann der Zustand in die andere Richtung geändert werden.
+- Beim Sneaken (Shift) wird ein Report nur ausgewählt, ohne den Status zu verändern. Die Auswahl wird hervorgehoben.
+- Unter den Reports befinden sich zusätzliche Buttons zum Claimen/Freigeben sowie ein Button „Notiz bearbeiten“.
+- Die aktuelle Notiz und der zuständige Staff werden sowohl in der Item-Lore als auch im Chat angezeigt.
+- Beim Klicken auf „Notiz bearbeiten“ wird der Spieler aufgefordert, den Text im Chat einzugeben (`clear` entfernt die Notiz, `cancel` bricht ab).
+
+## Workflow für Teammitglieder
+1. Öffne die GUI mit `/viewreportsgui` oder nutze `/report claim <ID>`, um dir einen Report zuzuweisen.
+2. Während du einen Report bearbeitest, kannst du Status, Zuständigkeit und Notizen entweder über die GUI-Buttons oder die neuen `/report`-Subcommands anpassen.
+3. Änderungen an Claim oder Notizen werden automatisch an andere Teammitglieder und den Discord-Channel kommuniziert.
+4. Nach Abschluss eines Reports setze den Status auf „geschlossen“ und gib den Report bei Bedarf wieder frei (`/report unclaim <ID>` oder über den GUI-Button).
 
 ## Placeholder
 - `%akzuwoextension_report_count%` – Anzahl der gespeicherten Reports.

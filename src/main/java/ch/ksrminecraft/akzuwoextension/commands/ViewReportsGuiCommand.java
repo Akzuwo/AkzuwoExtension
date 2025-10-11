@@ -12,16 +12,16 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.UUID;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 public class ViewReportsGuiCommand implements CommandExecutor {
 
@@ -58,10 +58,19 @@ public class ViewReportsGuiCommand implements CommandExecutor {
 
     private static int getStatusOrder(String status) {
         if (status == null) return 3;
-        if (status.equalsIgnoreCase("offen")) return 0;
-        if (status.equalsIgnoreCase("in Bearbeitung")) return 1;
-        if (status.equalsIgnoreCase("geschlossen")) return 2;
+        if (statusEquals(status, "offen", "open")) return 0;
+        if (statusEquals(status, "in Bearbeitung", "in bearbeitung", "in arbeit", "in progress")) return 1;
+        if (statusEquals(status, "geschlossen", "closed")) return 2;
         return 3;
+    }
+
+    private static boolean statusEquals(String status, String... values) {
+        for (String value : values) {
+            if (status.equalsIgnoreCase(value)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static String getPlayerNameFromUUID(String uuid) {
@@ -75,17 +84,24 @@ public class ViewReportsGuiCommand implements CommandExecutor {
         private static final int REPORTS_PER_PAGE = 45;
         public static final String NAVIGATION_PREVIOUS = "previous";
         public static final String NAVIGATION_NEXT = "next";
+        private static final String ACTION_CLAIM = "claim";
+        private static final String ACTION_UNCLAIM = "unclaim";
+        private static final String ACTION_NOTE = "note";
+        private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd.MM.yyyy HH:mm");
 
         private final AkzuwoExtension plugin;
         private final Inventory inventory;
         private final NamespacedKey reportIdKey;
         private final NamespacedKey navigationKey;
         private final NamespacedKey filterKey;
+        private final NamespacedKey actionKey;
 
         private int page = 0;
         private int totalPages = 1;
         private int filteredReportCount = 0;
         private StatusFilter filter = StatusFilter.ALL;
+        private Integer selectedReportId = null;
+        private final Map<Integer, Report> reportCache = new HashMap<>();
 
         public ReportsHolder(AkzuwoExtension plugin) {
             this.plugin = plugin;
@@ -93,6 +109,8 @@ public class ViewReportsGuiCommand implements CommandExecutor {
             this.reportIdKey = new NamespacedKey(plugin, "reportId");
             this.navigationKey = new NamespacedKey(plugin, "reportsNavigation");
             this.filterKey = new NamespacedKey(plugin, "reportsFilter");
+            this.actionKey = new NamespacedKey(plugin, "reportsAction");
+            DATE_FORMAT.setTimeZone(TimeZone.getTimeZone("Europe/Zurich"));
             refreshInventory();
         }
 
@@ -146,6 +164,22 @@ public class ViewReportsGuiCommand implements CommandExecutor {
             return filterKey;
         }
 
+        public NamespacedKey getActionKey() {
+            return actionKey;
+        }
+
+        public Integer getSelectedReportId() {
+            return selectedReportId;
+        }
+
+        public void setSelectedReportId(Integer selectedReportId) {
+            this.selectedReportId = selectedReportId;
+        }
+
+        public Report getReport(int id) {
+            return reportCache.get(id);
+        }
+
         public void refreshInventory() {
             inventory.clear();
 
@@ -160,10 +194,19 @@ public class ViewReportsGuiCommand implements CommandExecutor {
                 }
             }
 
+            reportCache.clear();
+            for (Report report : filtered) {
+                reportCache.put(report.getId(), report);
+            }
+
             filteredReportCount = filtered.size();
             totalPages = Math.max(1, (int) Math.ceil(filteredReportCount / (double) REPORTS_PER_PAGE));
             if (page >= totalPages) {
                 page = totalPages - 1;
+            }
+
+            if (selectedReportId != null && !reportCache.containsKey(selectedReportId)) {
+                selectedReportId = null;
             }
 
             int startIndex = page * REPORTS_PER_PAGE;
@@ -186,8 +229,30 @@ public class ViewReportsGuiCommand implements CommandExecutor {
                 lore.add(ChatColor.GRAY + "Melder: " + report.getReporterName());
                 lore.add(ChatColor.GRAY + "Gemeldete: " + getPlayerNameFromUUID(report.getPlayerUUID()));
                 lore.add(ChatColor.GRAY + "Grund: " + report.getReason());
+                String assigned = report.getAssignedStaff() == null || report.getAssignedStaff().isBlank()
+                        ? ChatColor.RED + "(niemand)"
+                        : ChatColor.GREEN + report.getAssignedStaff();
+                lore.add(ChatColor.GRAY + "Zuständig: " + assigned);
+
+                String note = report.getNotes();
+                if (note == null || note.isBlank()) {
+                    lore.add(ChatColor.GRAY + "Notiz: " + ChatColor.DARK_GRAY + "-" + ChatColor.RESET);
+                } else {
+                    lore.add(ChatColor.GRAY + "Notiz:");
+                    for (String line : wrapText(note, 35)) {
+                        lore.add(ChatColor.WHITE + line);
+                    }
+                }
+
+                if (report.getLastUpdated() != null) {
+                    lore.add(ChatColor.DARK_GRAY + "Aktualisiert: " + DATE_FORMAT.format(report.getLastUpdated()));
+                }
                 meta.setLore(lore);
                 meta.getPersistentDataContainer().set(reportIdKey, PersistentDataType.INTEGER, report.getId());
+                if (selectedReportId != null && selectedReportId.equals(report.getId())) {
+                    meta.addEnchant(Enchantment.DURABILITY, 1, true);
+                    meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+                }
                 item.setItemMeta(meta);
             }
             return item;
@@ -211,8 +276,12 @@ public class ViewReportsGuiCommand implements CommandExecutor {
                 inventory.setItem(53, createDisabledNavigationItem(ChatColor.DARK_GRAY + "Keine weitere Seite"));
             }
 
+            inventory.setItem(46, createClaimItem());
+            inventory.setItem(47, createUnclaimItem());
+            inventory.setItem(48, createNoteItem());
             inventory.setItem(49, createFilterItem());
             inventory.setItem(51, createPageIndicator());
+            inventory.setItem(52, createSelectionOverview());
         }
 
         private ItemStack createNavigationItem(Material material, String name, String navigationValue) {
@@ -280,6 +349,144 @@ public class ViewReportsGuiCommand implements CommandExecutor {
             return item;
         }
 
+        private ItemStack createClaimItem() {
+            ItemStack item;
+            ItemMeta meta;
+            Report selected = selectedReportId == null ? null : reportCache.get(selectedReportId);
+            if (selected == null) {
+                item = new ItemStack(Material.LIGHT_GRAY_DYE);
+                meta = item.getItemMeta();
+                if (meta != null) {
+                    meta.setDisplayName(ChatColor.DARK_GRAY + "Report auswählen");
+                    meta.setLore(Collections.singletonList(ChatColor.GRAY + "Klicke einen Report an."));
+                    item.setItemMeta(meta);
+                }
+                return item;
+            }
+
+            boolean alreadyAssigned = selected.getAssignedStaff() != null && !selected.getAssignedStaff().isBlank();
+            if (alreadyAssigned) {
+                item = new ItemStack(Material.YELLOW_DYE);
+            } else {
+                item = new ItemStack(Material.LIME_DYE);
+            }
+            meta = item.getItemMeta();
+            if (meta != null) {
+                meta.setDisplayName(ChatColor.GREEN + "Report claimen");
+                List<String> lore = new ArrayList<>();
+                lore.add(ChatColor.GRAY + "Weise dir den Report zu.");
+                if (alreadyAssigned) {
+                    lore.add(ChatColor.YELLOW + "Aktuell: " + ChatColor.WHITE + selected.getAssignedStaff());
+                }
+                meta.setLore(lore);
+                meta.getPersistentDataContainer().set(actionKey, PersistentDataType.STRING, ACTION_CLAIM);
+                item.setItemMeta(meta);
+            }
+            return item;
+        }
+
+        private ItemStack createUnclaimItem() {
+            Report selected = selectedReportId == null ? null : reportCache.get(selectedReportId);
+            if (selected == null || selected.getAssignedStaff() == null || selected.getAssignedStaff().isBlank()) {
+                ItemStack item = new ItemStack(Material.LIGHT_GRAY_DYE);
+                ItemMeta meta = item.getItemMeta();
+                if (meta != null) {
+                    meta.setDisplayName(ChatColor.DARK_GRAY + "Kein Claim vorhanden");
+                    meta.setLore(Collections.singletonList(ChatColor.GRAY + "Nur möglich, wenn ein Claim besteht."));
+                    item.setItemMeta(meta);
+                }
+                return item;
+            }
+
+            ItemStack item = new ItemStack(Material.RED_DYE);
+            ItemMeta meta = item.getItemMeta();
+            if (meta != null) {
+                meta.setDisplayName(ChatColor.RED + "Report freigeben");
+                List<String> lore = new ArrayList<>();
+                lore.add(ChatColor.GRAY + "Entfernt die aktuelle Zuständigkeit.");
+                lore.add(ChatColor.YELLOW + "Aktuell: " + ChatColor.WHITE + selected.getAssignedStaff());
+                meta.setLore(lore);
+                meta.getPersistentDataContainer().set(actionKey, PersistentDataType.STRING, ACTION_UNCLAIM);
+                item.setItemMeta(meta);
+            }
+            return item;
+        }
+
+        private ItemStack createNoteItem() {
+            ItemStack item = new ItemStack(Material.BOOK_AND_QUILL);
+            ItemMeta meta = item.getItemMeta();
+            if (meta != null) {
+                meta.setDisplayName(ChatColor.AQUA + "Notiz bearbeiten");
+                List<String> lore = new ArrayList<>();
+                if (selectedReportId == null) {
+                    lore.add(ChatColor.GRAY + "Klicke einen Report an, um die Notiz zu bearbeiten.");
+                } else {
+                    Report selected = reportCache.get(selectedReportId);
+                    if (selected != null) {
+                        String note = selected.getNotes();
+                        if (note == null || note.isBlank()) {
+                            lore.add(ChatColor.GRAY + "Aktuelle Notiz: " + ChatColor.DARK_GRAY + "-");
+                        } else {
+                            lore.add(ChatColor.GRAY + "Aktuelle Notiz:");
+                            for (String line : wrapText(note, 30)) {
+                                lore.add(ChatColor.WHITE + line);
+                            }
+                        }
+                    }
+                }
+                meta.setLore(lore);
+                meta.getPersistentDataContainer().set(actionKey, PersistentDataType.STRING, ACTION_NOTE);
+                item.setItemMeta(meta);
+            }
+            return item;
+        }
+
+        private ItemStack createSelectionOverview() {
+            ItemStack item = new ItemStack(Material.NAME_TAG);
+            ItemMeta meta = item.getItemMeta();
+            if (meta != null) {
+                if (selectedReportId == null) {
+                    meta.setDisplayName(ChatColor.GRAY + "Kein Report ausgewählt");
+                    meta.setLore(Collections.singletonList(ChatColor.DARK_GRAY + "Wähle einen Report mit Linksklick aus."));
+                } else {
+                    Report report = reportCache.get(selectedReportId);
+                    meta.setDisplayName(ChatColor.YELLOW + "Auswahl: #" + selectedReportId);
+                    List<String> lore = new ArrayList<>();
+                    if (report != null) {
+                        lore.add(ChatColor.GRAY + "Status: " + ChatColor.WHITE + report.getStatus());
+                        String assigned = report.getAssignedStaff() == null || report.getAssignedStaff().isBlank()
+                                ? ChatColor.RED + "(niemand)"
+                                : ChatColor.GREEN + report.getAssignedStaff();
+                        lore.add(ChatColor.GRAY + "Zuständig: " + assigned);
+                    }
+                    meta.setLore(lore);
+                }
+                item.setItemMeta(meta);
+            }
+            return item;
+        }
+
+        private List<String> wrapText(String text, int maxLength) {
+            List<String> lines = new ArrayList<>();
+            if (text == null) {
+                return lines;
+            }
+            String remaining = text;
+            while (!remaining.isEmpty()) {
+                if (remaining.length() <= maxLength) {
+                    lines.add(remaining);
+                    break;
+                }
+                int split = remaining.lastIndexOf(' ', maxLength);
+                if (split <= 0) {
+                    split = maxLength;
+                }
+                lines.add(remaining.substring(0, split));
+                remaining = remaining.substring(Math.min(split + 1, remaining.length()));
+            }
+            return lines;
+        }
+
         private enum StatusFilter {
             ALL("Alle"),
             OPEN_ONLY("Nur offen"),
@@ -313,11 +520,11 @@ public class ViewReportsGuiCommand implements CommandExecutor {
 
                 switch (this) {
                     case OPEN_ONLY:
-                        return status.equalsIgnoreCase("offen");
+                        return statusEquals(status, "offen", "open");
                     case IN_PROGRESS_ONLY:
-                        return status.equalsIgnoreCase("in Bearbeitung");
+                        return statusEquals(status, "in Bearbeitung", "in bearbeitung", "in progress");
                     case CLOSED_ONLY:
-                        return status.equalsIgnoreCase("geschlossen");
+                        return statusEquals(status, "geschlossen", "closed");
                     default:
                         return false;
                 }
