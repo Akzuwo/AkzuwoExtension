@@ -252,7 +252,7 @@ public class AkzuwoExtension extends JavaPlugin {
         LeineCommand leineCommand = new LeineCommand(this);
 
         getCommand("report").setExecutor(new ReportCommand(this, discordNotifier, reportCooldownSeconds, reportMaxReports));
-        getCommand("report").setTabCompleter(new ReportTabCompleter());
+        getCommand("report").setTabCompleter(new ReportTabCompleter(this));
         getCommand("viewreports").setExecutor(new ViewReportsCommand(this));
         getCommand("viewreportsgui").setExecutor(new ViewReportsGuiCommand(this));
         getCommand("deletereport").setExecutor(new DeleteReportCommand(this, reportRepository));

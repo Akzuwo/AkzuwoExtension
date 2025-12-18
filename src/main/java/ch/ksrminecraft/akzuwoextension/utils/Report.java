@@ -10,16 +10,23 @@ public class Report {
     private final String reporterName;         // Name des Reporters
     private final String reason;               // Grund für den Report
     private final String status;               // Status des Reports (z. B. "open", "closed")
+    private final String assignedStaff;        // Zuständiges Teammitglied
+    private final String notes;                // Notizen zum Report
     private final Timestamp timestamp;         // Zeitstempel des Reports
+    private final Timestamp lastUpdated;       // Letzte Aktualisierung
 
     // Vollständiger Konstruktor
-    public Report(Integer id, String playerUUID, String reporterName, String reason, String status, Timestamp timestamp) {
+    public Report(Integer id, String playerUUID, String reporterName, String reason, String status,
+                  String assignedStaff, String notes, Timestamp timestamp, Timestamp lastUpdated) {
         this.id = id;
         this.playerUUID = playerUUID;
         this.reporterName = reporterName;
         this.reason = reason;
         this.status = status;
+        this.assignedStaff = assignedStaff;
+        this.notes = notes;
         this.timestamp = timestamp;
+        this.lastUpdated = lastUpdated;
     }
 
     // Getter-Methoden
@@ -43,8 +50,20 @@ public class Report {
         return status;
     }
 
+    public String getAssignedStaff() {
+        return assignedStaff;
+    }
+
+    public String getNotes() {
+        return notes;
+    }
+
     public Timestamp getTimestamp() {
         return timestamp;
+    }
+
+    public Timestamp getLastUpdated() {
+        return lastUpdated;
     }
 
     /**
@@ -66,6 +85,8 @@ public class Report {
                 " | Gegen: " + getPlayerName() + // Dynamisch den Spielernamen abrufen
                 " | Grund: " + reason +
                 " | Status: " + status +
+                " | Zuständig: " + (assignedStaff == null ? "keiner" : assignedStaff) +
+                " | Notiz: " + (notes == null || notes.isBlank() ? "-" : notes) +
                 " | Zeit: " + timestamp;
     }
 }
