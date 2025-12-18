@@ -7,12 +7,16 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 
+import java.util.Arrays;
+
 public class AkzuwoExtensionCommand implements CommandExecutor {
 
     private final AkzuwoExtension plugin;
+    private final LeineCommand leineCommand;
 
-    public AkzuwoExtensionCommand(AkzuwoExtension plugin) {
+    public AkzuwoExtensionCommand(AkzuwoExtension plugin, LeineCommand leineCommand) {
         this.plugin = plugin;
+        this.leineCommand = leineCommand;
     }
 
     @Override
@@ -49,9 +53,17 @@ public class AkzuwoExtensionCommand implements CommandExecutor {
                 }
                 return true;
             }
+
+            if (args[0].equalsIgnoreCase("leine")) {
+                return leineCommand.handle(sender, new String[0]);
+            }
         }
 
-        sender.sendMessage(ChatColor.RED + "Verwendung: /akzuwoextension confirm | remind");
+        if (args.length >= 2 && args[0].equalsIgnoreCase("leine")) {
+            return leineCommand.handle(sender, Arrays.copyOfRange(args, 1, args.length));
+        }
+
+        sender.sendMessage(ChatColor.RED + "Verwendung: /akzuwoextension confirm | remind | leine <spieler|stop>");
         return true;
     }
 }

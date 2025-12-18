@@ -26,10 +26,12 @@ public class AkzuwoExtension extends JavaPlugin {
     private int reportMaxReports;
     private ReportReminderService reportReminderService;
     private int reminderTaskId = -1;
+    private LeineManager leineManager;
 
     @Override
     public void onEnable() {
         logger = new PrefixedLogger(super.getLogger());
+        leineManager = new LeineManager(this);
 
         // Plugin-Ordner erstellen
         if (!getDataFolder().exists() && !getDataFolder().mkdirs()) {
@@ -132,6 +134,10 @@ public class AkzuwoExtension extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (leineManager != null) {
+            leineManager.cancelAll();
+        }
+
         if (reminderTaskId != -1) {
             Bukkit.getScheduler().cancelTask(reminderTaskId);
             reminderTaskId = -1;
@@ -243,6 +249,8 @@ public class AkzuwoExtension extends JavaPlugin {
      * Registriert alle Commands und zugehörigen TabCompleter.
      */
     private void registerCommands() {
+        LeineCommand leineCommand = new LeineCommand(this);
+
         getCommand("report").setExecutor(new ReportCommand(this, discordNotifier, reportCooldownSeconds, reportMaxReports));
         getCommand("report").setTabCompleter(new ReportTabCompleter());
         getCommand("viewreports").setExecutor(new ViewReportsCommand(this));
@@ -252,7 +260,8 @@ public class AkzuwoExtension extends JavaPlugin {
         ViewPlayerReportsCommand viewPlayerReportsCommand = new ViewPlayerReportsCommand(this);
         getCommand("viewplayerreports").setExecutor(viewPlayerReportsCommand);
         getCommand("viewplayerreports").setTabCompleter(viewPlayerReportsCommand);
-        getCommand("akzuwoextension").setExecutor(new AkzuwoExtensionCommand(this));
+        getCommand("akzuwoextension").setExecutor(new AkzuwoExtensionCommand(this, leineCommand));
+        getCommand("leine").setExecutor(leineCommand);
     }
 
     public ReportRepository getReportRepository() {
@@ -285,5 +294,9 @@ public class AkzuwoExtension extends JavaPlugin {
 
     public long getRankPointsCheckInterval() {
         return rankPointsCheckInterval;
+    }
+
+    public LeineManager getLeineManager() {
+        return leineManager;
     }
 }
