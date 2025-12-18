@@ -19,8 +19,11 @@ commands:
     description: Delete a report by ID.
     usage: /deletereport <id>
   akzuwoextension:
-    description: Base command for Bestätigungen und Reminder.
-    usage: /akzuwoextension confirm|remind
+    description: Base command für Bestätigungen, Reminder und Leinen.
+    usage: /akzuwoextension confirm|remind|leine
+  leine:
+    description: Leint einen Spieler an dich an.
+    usage: /leine <spieler|stop>
 
 tutorialcommand: true
 
@@ -33,4 +36,6 @@ permissions:
   akzuwoextension.exempt:
     description: Prevents a player from being reported by others.
     default: false
-
+  akzuwoextension.superadmin:
+    description: Zugriff auf Superadmin-Funktionen wie die Leine.
+    default: op
