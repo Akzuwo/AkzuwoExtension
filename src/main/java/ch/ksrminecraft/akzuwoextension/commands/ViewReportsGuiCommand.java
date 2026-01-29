@@ -26,6 +26,7 @@ import java.util.*;
 public class ViewReportsGuiCommand implements CommandExecutor {
 
     private final AkzuwoExtension plugin;
+    private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd.MM.yyyy HH:mm");
 
     public ViewReportsGuiCommand(AkzuwoExtension plugin) {
         this.plugin = plugin;
@@ -73,6 +74,27 @@ public class ViewReportsGuiCommand implements CommandExecutor {
         return false;
     }
 
+    private static List<String> wrapText(String text, int maxLength) {
+        List<String> lines = new ArrayList<>();
+        if (text == null) {
+            return lines;
+        }
+        String remaining = text;
+        while (!remaining.isEmpty()) {
+            if (remaining.length() <= maxLength) {
+                lines.add(remaining);
+                break;
+            }
+            int split = remaining.lastIndexOf(' ', maxLength);
+            if (split <= 0) {
+                split = maxLength;
+            }
+            lines.add(remaining.substring(0, split));
+            remaining = remaining.substring(Math.min(split + 1, remaining.length()));
+        }
+        return lines;
+    }
+
     private static String getPlayerNameFromUUID(String uuid) {
         OfflinePlayer player = Bukkit.getOfflinePlayer(UUID.fromString(uuid));
         return player.getName() != null ? player.getName() : "Unbekannt";
@@ -87,8 +109,6 @@ public class ViewReportsGuiCommand implements CommandExecutor {
         private static final String ACTION_CLAIM = "claim";
         private static final String ACTION_UNCLAIM = "unclaim";
         private static final String ACTION_NOTE = "note";
-        private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd.MM.yyyy HH:mm");
-
         private final AkzuwoExtension plugin;
         private final Inventory inventory;
         private final NamespacedKey reportIdKey;
@@ -233,13 +253,14 @@ public class ViewReportsGuiCommand implements CommandExecutor {
                         ? ChatColor.RED + "(niemand)"
                         : ChatColor.GREEN + report.getAssignedStaff();
                 lore.add(ChatColor.GRAY + "Zuständig: " + assigned);
+                lore.add(ChatColor.AQUA + "Klicke, um das Menü zu öffnen.");
 
                 String note = report.getNotes();
                 if (note == null || note.isBlank()) {
                     lore.add(ChatColor.GRAY + "Notiz: " + ChatColor.DARK_GRAY + "-" + ChatColor.RESET);
                 } else {
                     lore.add(ChatColor.GRAY + "Notiz:");
-                    for (String line : wrapText(note, 35)) {
+                    for (String line : ViewReportsGuiCommand.wrapText(note, 35)) {
                         lore.add(ChatColor.WHITE + line);
                     }
                 }
@@ -428,7 +449,7 @@ public class ViewReportsGuiCommand implements CommandExecutor {
                             lore.add(ChatColor.GRAY + "Aktuelle Notiz: " + ChatColor.DARK_GRAY + "-");
                         } else {
                             lore.add(ChatColor.GRAY + "Aktuelle Notiz:");
-                            for (String line : wrapText(note, 30)) {
+                            for (String line : ViewReportsGuiCommand.wrapText(note, 30)) {
                                 lore.add(ChatColor.WHITE + line);
                             }
                         }
@@ -464,27 +485,6 @@ public class ViewReportsGuiCommand implements CommandExecutor {
                 item.setItemMeta(meta);
             }
             return item;
-        }
-
-        private List<String> wrapText(String text, int maxLength) {
-            List<String> lines = new ArrayList<>();
-            if (text == null) {
-                return lines;
-            }
-            String remaining = text;
-            while (!remaining.isEmpty()) {
-                if (remaining.length() <= maxLength) {
-                    lines.add(remaining);
-                    break;
-                }
-                int split = remaining.lastIndexOf(' ', maxLength);
-                if (split <= 0) {
-                    split = maxLength;
-                }
-                lines.add(remaining.substring(0, split));
-                remaining = remaining.substring(Math.min(split + 1, remaining.length()));
-            }
-            return lines;
         }
 
         private enum StatusFilter {
@@ -529,6 +529,140 @@ public class ViewReportsGuiCommand implements CommandExecutor {
                         return false;
                 }
             }
+        }
+    }
+
+    public static class ReportDetailHolder implements InventoryHolder {
+
+        private static final int INVENTORY_SIZE = 27;
+        public static final String ACTION_BACK = "back";
+        public static final String ACTION_STATUS_OPEN = "status_open";
+        public static final String ACTION_STATUS_IN_PROGRESS = "status_in_progress";
+        public static final String ACTION_STATUS_CLOSED = "status_closed";
+
+        private final AkzuwoExtension plugin;
+        private final ReportsHolder parentHolder;
+        private final Inventory inventory;
+        private final NamespacedKey actionKey;
+        private final int reportId;
+
+        public ReportDetailHolder(AkzuwoExtension plugin, ReportsHolder parentHolder, int reportId) {
+            this.plugin = plugin;
+            this.parentHolder = parentHolder;
+            this.reportId = reportId;
+            this.inventory = Bukkit.createInventory(this, INVENTORY_SIZE, ChatColor.DARK_RED + "Report #" + reportId);
+            this.actionKey = new NamespacedKey(plugin, "reportDetailAction");
+            refreshInventory();
+        }
+
+        @Override
+        public Inventory getInventory() {
+            return inventory;
+        }
+
+        public ReportsHolder getParentHolder() {
+            return parentHolder;
+        }
+
+        public NamespacedKey getActionKey() {
+            return actionKey;
+        }
+
+        public int getReportId() {
+            return reportId;
+        }
+
+        public void refreshInventory() {
+            inventory.clear();
+            ReportRepository repo = plugin.getReportRepository();
+            Report report = repo != null ? repo.getReportById(reportId) : null;
+            if (report == null) {
+                inventory.setItem(13, createMissingReportItem());
+                inventory.setItem(22, createBackItem());
+                return;
+            }
+
+            inventory.setItem(10, createStatusItem(Material.LIME_DYE, ChatColor.GREEN + "Status: Offen",
+                    ACTION_STATUS_OPEN, report, "offen"));
+            inventory.setItem(12, createStatusItem(Material.YELLOW_DYE, ChatColor.GOLD + "Status: In Bearbeitung",
+                    ACTION_STATUS_IN_PROGRESS, report, "in Bearbeitung"));
+            inventory.setItem(14, createStatusItem(Material.RED_DYE, ChatColor.RED + "Status: Geschlossen",
+                    ACTION_STATUS_CLOSED, report, "geschlossen"));
+            inventory.setItem(13, createReportInfoItem(report));
+            inventory.setItem(22, createBackItem());
+        }
+
+        private ItemStack createMissingReportItem() {
+            ItemStack item = new ItemStack(Material.BARRIER);
+            ItemMeta meta = item.getItemMeta();
+            if (meta != null) {
+                meta.setDisplayName(ChatColor.RED + "Report nicht gefunden");
+                meta.setLore(Collections.singletonList(ChatColor.GRAY + "Der Report existiert nicht mehr."));
+                item.setItemMeta(meta);
+            }
+            return item;
+        }
+
+        private ItemStack createReportInfoItem(Report report) {
+            ItemStack item = new ItemStack(Material.PAPER);
+            ItemMeta meta = item.getItemMeta();
+            if (meta != null) {
+                meta.setDisplayName(ChatColor.YELLOW + "Report #" + report.getId());
+                List<String> lore = new ArrayList<>();
+                lore.add(ChatColor.GRAY + "Status: " + ChatColor.WHITE + report.getStatus());
+                lore.add(ChatColor.GRAY + "Melder: " + report.getReporterName());
+                lore.add(ChatColor.GRAY + "Gemeldete: " + getPlayerNameFromUUID(report.getPlayerUUID()));
+                lore.add(ChatColor.GRAY + "Grund: " + report.getReason());
+                String assigned = report.getAssignedStaff() == null || report.getAssignedStaff().isBlank()
+                        ? ChatColor.RED + "(niemand)"
+                        : ChatColor.GREEN + report.getAssignedStaff();
+                lore.add(ChatColor.GRAY + "Zuständig: " + assigned);
+                String note = report.getNotes();
+                if (note == null || note.isBlank()) {
+                    lore.add(ChatColor.GRAY + "Notiz: " + ChatColor.DARK_GRAY + "-");
+                } else {
+                    lore.add(ChatColor.GRAY + "Notiz:");
+                    for (String line : ViewReportsGuiCommand.wrapText(note, 30)) {
+                        lore.add(ChatColor.WHITE + line);
+                    }
+                }
+                if (report.getLastUpdated() != null) {
+                    lore.add(ChatColor.DARK_GRAY + "Aktualisiert: " + DATE_FORMAT.format(report.getLastUpdated()));
+                }
+                meta.setLore(lore);
+                item.setItemMeta(meta);
+            }
+            return item;
+        }
+
+        private ItemStack createStatusItem(Material material, String name, String action, Report report, String statusMatch) {
+            ItemStack item = new ItemStack(material);
+            ItemMeta meta = item.getItemMeta();
+            if (meta != null) {
+                meta.setDisplayName(name);
+                List<String> lore = new ArrayList<>();
+                lore.add(ChatColor.GRAY + "Klicke zum Setzen.");
+                if (report.getStatus() != null && report.getStatus().equalsIgnoreCase(statusMatch)) {
+                    meta.addEnchant(Enchantment.DURABILITY, 1, true);
+                    meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+                    lore.add(ChatColor.GREEN + "Aktueller Status");
+                }
+                meta.setLore(lore);
+                meta.getPersistentDataContainer().set(actionKey, PersistentDataType.STRING, action);
+                item.setItemMeta(meta);
+            }
+            return item;
+        }
+
+        private ItemStack createBackItem() {
+            ItemStack item = new ItemStack(Material.ARROW);
+            ItemMeta meta = item.getItemMeta();
+            if (meta != null) {
+                meta.setDisplayName(ChatColor.AQUA + "Zurück zur Report-Liste");
+                meta.getPersistentDataContainer().set(actionKey, PersistentDataType.STRING, ACTION_BACK);
+                item.setItemMeta(meta);
+            }
+            return item;
         }
     }
 }

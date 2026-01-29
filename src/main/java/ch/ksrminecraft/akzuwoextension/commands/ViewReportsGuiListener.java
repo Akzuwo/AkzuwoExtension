@@ -55,7 +55,8 @@ public class ViewReportsGuiListener implements Listener {
         if (!(event.getWhoClicked() instanceof Player)) {
             return;
         }
-        if (!(event.getInventory().getHolder() instanceof ViewReportsGuiCommand.ReportsHolder)) {
+        if (!(event.getInventory().getHolder() instanceof ViewReportsGuiCommand.ReportsHolder)
+                && !(event.getInventory().getHolder() instanceof ViewReportsGuiCommand.ReportDetailHolder)) {
             return;
         }
         event.setCancelled(true);
@@ -70,10 +71,18 @@ public class ViewReportsGuiListener implements Listener {
             return;
         }
 
-        ViewReportsGuiCommand.ReportsHolder holder = (ViewReportsGuiCommand.ReportsHolder) event.getInventory().getHolder();
         Player player = (Player) event.getWhoClicked();
-        activeHolders.put(player.getUniqueId(), holder);
         PersistentDataContainer container = meta.getPersistentDataContainer();
+
+        if (event.getInventory().getHolder() instanceof ViewReportsGuiCommand.ReportDetailHolder) {
+            ViewReportsGuiCommand.ReportDetailHolder detailHolder =
+                    (ViewReportsGuiCommand.ReportDetailHolder) event.getInventory().getHolder();
+            handleDetailClick(player, detailHolder, container);
+            return;
+        }
+
+        ViewReportsGuiCommand.ReportsHolder holder = (ViewReportsGuiCommand.ReportsHolder) event.getInventory().getHolder();
+        activeHolders.put(player.getUniqueId(), holder);
         NamespacedKey navigationKey = holder.getNavigationKey();
         NamespacedKey filterKey = holder.getFilterKey();
         NamespacedKey reportKey = holder.getReportIdKey();
@@ -118,54 +127,63 @@ public class ViewReportsGuiListener implements Listener {
             return;
         }
 
-        if (player.isSneaking()) {
-            holder.refreshInventory();
-            sendSelectionInfo(player, report);
+        holder.refreshInventory();
+        ViewReportsGuiCommand.ReportDetailHolder detailHolder =
+                new ViewReportsGuiCommand.ReportDetailHolder(plugin, holder, id);
+        player.openInventory(detailHolder.getInventory());
+    }
+
+    private void handleDetailClick(Player player, ViewReportsGuiCommand.ReportDetailHolder detailHolder,
+                                   PersistentDataContainer container) {
+        NamespacedKey actionKey = detailHolder.getActionKey();
+        if (!container.has(actionKey, PersistentDataType.STRING)) {
             return;
         }
 
-        boolean rightClick = event.getClick().isRightClick();
-        boolean leftClick = event.getClick().isLeftClick();
-        if (!rightClick && !leftClick) {
-            holder.refreshInventory();
-            sendSelectionInfo(player, report);
+        String action = container.get(actionKey, PersistentDataType.STRING);
+        if (action == null) {
             return;
         }
 
-        String oldStatus = report.getStatus();
+        if (ViewReportsGuiCommand.ReportDetailHolder.ACTION_BACK.equals(action)) {
+            ViewReportsGuiCommand.ReportsHolder parent = detailHolder.getParentHolder();
+            parent.refreshInventory();
+            activeHolders.put(player.getUniqueId(), parent);
+            player.openInventory(parent.getInventory());
+            sendPageFeedback(player, parent);
+            return;
+        }
+
+        ReportRepository repo = plugin.getReportRepository();
+        if (repo == null) {
+            player.sendMessage(ChatColor.RED + "Das Report-System ist derzeit nicht verfügbar.");
+            return;
+        }
+
+        int reportId = detailHolder.getReportId();
+        Report report = repo.getReportById(reportId);
+        if (report == null) {
+            detailHolder.refreshInventory();
+            player.sendMessage(ChatColor.RED + "Dieser Report existiert nicht mehr.");
+            return;
+        }
+
         String newStatus = null;
-        if (rightClick) {
-            if ("offen".equalsIgnoreCase(oldStatus)) {
-                newStatus = "in Bearbeitung";
-            } else if ("in Bearbeitung".equalsIgnoreCase(oldStatus)) {
-                newStatus = "geschlossen";
-            }
-        } else if (leftClick) {
-            if ("geschlossen".equalsIgnoreCase(oldStatus)) {
-                newStatus = "in Bearbeitung";
-            } else if ("in Bearbeitung".equalsIgnoreCase(oldStatus)) {
-                newStatus = "offen";
-            }
+        if (ViewReportsGuiCommand.ReportDetailHolder.ACTION_STATUS_OPEN.equals(action)) {
+            newStatus = "offen";
+        } else if (ViewReportsGuiCommand.ReportDetailHolder.ACTION_STATUS_IN_PROGRESS.equals(action)) {
+            newStatus = "in Bearbeitung";
+        } else if (ViewReportsGuiCommand.ReportDetailHolder.ACTION_STATUS_CLOSED.equals(action)) {
+            newStatus = "geschlossen";
         }
 
         if (newStatus != null) {
-            repo.updateReportStatus(id, newStatus);
-            meta.setDisplayName(ChatColor.YELLOW + "ID " + id + " [" + newStatus + "]");
-            clickedItem.setItemMeta(meta);
-
-            player.sendMessage(ChatColor.GREEN + "Report " + id + " ist nun " + newStatus + ".");
-
-            holder.refreshInventory();
-            sendPageFeedback(player, holder);
-            notifyDiscordStatusChange(player, id, oldStatus, newStatus,
+            String oldStatus = report.getStatus();
+            repo.updateReportStatus(reportId, newStatus);
+            detailHolder.refreshInventory();
+            player.sendMessage(ChatColor.GREEN + "Report " + reportId + " ist nun " + newStatus + ".");
+            notifyDiscordStatusChange(player, reportId, oldStatus, newStatus,
                     player.getName() + " hat den Status geändert");
-            Report updated = repo.getReportById(id);
-            if (updated != null) {
-                sendSelectionInfo(player, updated);
-            }
-        } else {
-            holder.refreshInventory();
-            sendSelectionInfo(player, report);
         }
     }
 
