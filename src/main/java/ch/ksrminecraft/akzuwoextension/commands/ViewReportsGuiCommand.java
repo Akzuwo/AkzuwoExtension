@@ -271,7 +271,7 @@ public class ViewReportsGuiCommand implements CommandExecutor {
                 meta.setLore(lore);
                 meta.getPersistentDataContainer().set(reportIdKey, PersistentDataType.INTEGER, report.getId());
                 if (selectedReportId != null && selectedReportId.equals(report.getId())) {
-                    meta.addEnchant(Enchantment.DURABILITY, 1, true);
+                    meta.addEnchant(Enchantment.DENSITY, 1, true);
                     meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
                 }
                 item.setItemMeta(meta);
@@ -434,7 +434,7 @@ public class ViewReportsGuiCommand implements CommandExecutor {
         }
 
         private ItemStack createNoteItem() {
-            ItemStack item = new ItemStack(Material.BOOK_AND_QUILL);
+            ItemStack item = new ItemStack(Material.BOOK);
             ItemMeta meta = item.getItemMeta();
             if (meta != null) {
                 meta.setDisplayName(ChatColor.AQUA + "Notiz bearbeiten");
@@ -643,7 +643,7 @@ public class ViewReportsGuiCommand implements CommandExecutor {
                 List<String> lore = new ArrayList<>();
                 lore.add(ChatColor.GRAY + "Klicke zum Setzen.");
                 if (report.getStatus() != null && report.getStatus().equalsIgnoreCase(statusMatch)) {
-                    meta.addEnchant(Enchantment.DURABILITY, 1, true);
+                    meta.addEnchant(Enchantment.DENSITY, 1, true);
                     meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
                     lore.add(ChatColor.GREEN + "Aktueller Status");
                 }
