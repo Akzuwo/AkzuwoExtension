@@ -4,13 +4,20 @@ import com.google.gson.*;
 
 import java.io.*;
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Logger;
 
@@ -32,6 +39,9 @@ public class ReportRepository  {
         this.databaseManager = databaseManager;
         this.logger = logger;
         this.jsonFile = new File(dataFolder, "reports.json");
+        if (databaseManager != null) {
+            ensureReportsTable();
+        }
         if (!jsonFile.exists()) {
             try {
                 if (jsonFile.createNewFile()) {
@@ -82,6 +92,69 @@ public class ReportRepository  {
             saveJson(new JsonArray());
         } catch (SQLException e) {
             logger.severe("Fehler beim Übertragen offline gespeicherter Reports: " + e.getMessage());
+        }
+    }
+
+    private void ensureReportsTable() {
+        try (Connection connection = databaseManager.getConnection()) {
+            DatabaseMetaData metaData = connection.getMetaData();
+            String tableName = "reports";
+            boolean tableExists = false;
+            try (ResultSet tables = metaData.getTables(connection.getCatalog(), null, tableName, new String[]{"TABLE"})) {
+                tableExists = tables.next();
+            }
+
+            Map<String, String> columnDefinitions = new LinkedHashMap<>();
+            columnDefinitions.put("id", "INT NOT NULL AUTO_INCREMENT PRIMARY KEY");
+            columnDefinitions.put("player_uuid", "VARCHAR(36) NOT NULL");
+            columnDefinitions.put("reporter_name", "VARCHAR(100) NOT NULL");
+            columnDefinitions.put("reason", "VARCHAR(1024) NOT NULL");
+            columnDefinitions.put("status", "VARCHAR(20) NOT NULL DEFAULT 'offen'");
+            columnDefinitions.put("assigned_staff", "VARCHAR(100) NULL");
+            columnDefinitions.put("notes", "VARCHAR(2048) NOT NULL DEFAULT ''");
+            columnDefinitions.put("timestamp", "TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP");
+            columnDefinitions.put("last_updated", "TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP");
+
+            if (!tableExists) {
+                StringBuilder createSql = new StringBuilder("CREATE TABLE ")
+                        .append(tableName)
+                        .append(" (");
+                boolean first = true;
+                for (Map.Entry<String, String> entry : columnDefinitions.entrySet()) {
+                    if (!first) {
+                        createSql.append(", ");
+                    }
+                    createSql.append(entry.getKey()).append(" ").append(entry.getValue());
+                    first = false;
+                }
+                createSql.append(")");
+                try (Statement statement = connection.createStatement()) {
+                    statement.executeUpdate(createSql.toString());
+                }
+                return;
+            }
+
+            Set<String> existingColumns = new HashSet<>();
+            try (ResultSet columns = metaData.getColumns(connection.getCatalog(), null, tableName, null)) {
+                while (columns.next()) {
+                    String columnName = columns.getString("COLUMN_NAME");
+                    if (columnName != null) {
+                        existingColumns.add(columnName.toLowerCase(Locale.ROOT));
+                    }
+                }
+            }
+
+            for (Map.Entry<String, String> entry : columnDefinitions.entrySet()) {
+                String columnName = entry.getKey();
+                if (!existingColumns.contains(columnName.toLowerCase(Locale.ROOT))) {
+                    String alterSql = "ALTER TABLE " + tableName + " ADD COLUMN " + columnName + " " + entry.getValue();
+                    try (Statement statement = connection.createStatement()) {
+                        statement.executeUpdate(alterSql);
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            logger.severe("Fehler beim Prüfen oder Erstellen der reports Tabelle: " + e.getMessage());
         }
     }
 
